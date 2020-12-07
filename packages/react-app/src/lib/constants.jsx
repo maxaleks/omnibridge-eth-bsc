@@ -23,23 +23,56 @@ export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 //     icon: <NetworkIcon />,
 //   },
 // ];
-export const networkOptions = [ // stage
+export const networkOptions = [
+  // stage
   {
-    value: 77,
+    value: 56,
     key: 0,
-    bridge: { chainId: 42, name: 'Kovan Testnet' },
-    label: 'Sokol',
-    name: 'Sokol Testnet',
+    bridge: { chainId: 1, name: 'ETH Mainnet' },
+    label: 'Binance Smart Chain',
+    name: 'Binance Smart Chain',
     icon: <NetworkIcon />,
   },
   {
-    value: 42,
+    value: 1,
     key: 1,
-    bridge: { chainId: 77, name: 'Sokol Testnet' },
-    label: 'Kovan',
-    name: 'Kovan Testnet',
+    bridge: { chainId: 56, name: 'Binance Smart Chain' },
+    label: 'Mainnet',
+    name: 'ETH Mainnet',
     icon: <NetworkIcon />,
   },
+  // {
+  //   value: 100,
+  //   key: 0,
+  //   bridge: { chainId: 1, name: 'ETH Mainnet' },
+  //   label: 'xDai',
+  //   name: 'xDai Chain',
+  //   icon: <NetworkIcon />,
+  // },
+  // {
+  //   value: 1,
+  //   key: 1,
+  //   bridge: { chainId: 100, name: 'xDai Chain' },
+  //   label: 'Mainnet',
+  //   name: 'ETH Mainnet',
+  //   icon: <NetworkIcon />,
+  // },
+  // {
+  //   value: 77,
+  //   key: 2,
+  //   bridge: { chainId: 42, name: 'Kovan Testnet' },
+  //   label: 'Sokol',
+  //   name: 'Sokol Testnet',
+  //   icon: <NetworkIcon />,
+  // },
+  // {
+  //   value: 42,
+  //   key: 3,
+  //   bridge: { chainId: 77, name: 'Sokol Testnet' },
+  //   label: 'Kovan',
+  //   name: 'Kovan Testnet',
+  //   icon: <NetworkIcon />,
+  // },
 ];
 
 export const networkNames = {
@@ -47,6 +80,7 @@ export const networkNames = {
   1: 'ETH Mainnet',
   77: 'Sokol Testnet',
   42: 'Kovan Testnet',
+  56: 'Binance Smart Chain',
 };
 
 export const chainUrls = {
@@ -74,6 +108,12 @@ export const chainUrls = {
     chainId: 42,
     name: 'Kovan Testnet',
   },
+  56: {
+    rpc: 'https://bsc-dataseed.binance.org/',
+    explorer: 'https://bscscan.com',
+    chainId: 56,
+    name: 'Binance Smart Chain',
+  },
 };
 
 export const defaultTokens = {
@@ -85,7 +125,7 @@ export const defaultTokens = {
     chainId: 100,
   },
   1: {
-    name: 'Stake',
+    name: 'STAKE',
     address: '0x0Ae055097C6d159879521C384F1D2123D1f195e6',
     symbol: 'STAKE',
     decimals: 18,
@@ -107,27 +147,40 @@ export const defaultTokens = {
     decimals: 18,
     chainId: 42,
   },
+  56: {
+    name: 'STAKE on BSC',
+    address: '0xe55e614862694214f0339adb551393cb56149323',
+    symbol: 'STAKE',
+    decimals: 18,
+    chainId: 56,
+  },
 };
 
 export const graphEndpoints = {
-  100: 'https://api.thegraph.com/subgraphs/name/dan13ram/xdai-omnibridge',
-  1: 'https://api.thegraph.com/subgraphs/name/dan13ram/mainnet-omnibridge',
-  77: 'https://api.thegraph.com/subgraphs/name/dan13ram/sokol-omnibridge',
-  42: 'https://api.thegraph.com/subgraphs/name/dan13ram/kovan-omnibridge',
+  // 100: 'https://api.thegraph.com/subgraphs/name/dan13ram/xdai-omnibridge',
+  // 1: 'https://api.thegraph.com/subgraphs/name/dan13ram/mainnet-omnibridge',
+  // 77: 'https://api.thegraph.com/subgraphs/name/dan13ram/sokol-omnibridge',
+  // 42: 'https://api.thegraph.com/subgraphs/name/dan13ram/kovan-omnibridge',
+  1: 'https://api.thegraph.com/subgraphs/name/maxaleks/mainnet-to-bsc-omnibridge',
+  56: 'https://api.bscgraph.org/subgraphs/name/bsc-to-mainnet-omnibridge',
 };
 
 export const mediators = {
-  42: '0xA960d095470f7509955d5402e36d9DB984B5C8E2',
-  77: '0x40CdfF886715A4012fAD0219D15C98bB149AeF0e',
-  1: '0x88ad09518695c6c3712AC10a214bE5109a655671',
-  100: '0xf6A78083ca3e2a662D6dd1703c939c8aCE2e268d',
+  // 42: '0xA960d095470f7509955d5402e36d9DB984B5C8E2',
+  // 77: '0x40CdfF886715A4012fAD0219D15C98bB149AeF0e',
+  // 1: '0x88ad09518695c6c3712AC10a214bE5109a655671',
+  // 100: '0xf6A78083ca3e2a662D6dd1703c939c8aCE2e268d',
+  1: '0x69c707d975e8d883920003CC357E556a4732CD03',
+  56: '0xD83893F31AA1B6B9D97C9c70D3492fe38D24d218',
 };
 
 export const ambs = {
-  42: '0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560',
-  77: '0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560',
-  1: '0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e',
-  100: '0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59',
+  // 42: '0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560',
+  // 77: '0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560',
+  // 1: '0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e',
+  // 100: '0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59',
+  1: '0x07955be2967B655Cf52751fCE7ccC8c61EA594e2',
+  56: '0x6943A218d58135793F1FE619414eD476C37ad65a',
 };
 
 export const defaultTokensUrl = {
@@ -135,4 +188,5 @@ export const defaultTokensUrl = {
   1: 'https://tokens.uniswap.org',
   42: '',
   77: '',
+  56: '',
 };

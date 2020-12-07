@@ -43,7 +43,11 @@ export function handleNewToken(event: NewTokenRegistered): void {
   token.decimals = tokenObject.decimals;
 
   let network = dataSource.network();
-  if (network == 'xdai') {
+  if (network == 'mainnet') {
+    // Binance Smart Chain
+    token.homeChainId = 56;
+    token.foreignChainId = 1;
+  } else if (network == 'xdai') {
     token.homeChainId = 100;
     token.foreignChainId = 1;
   } else if (network == 'poa-sokol') {

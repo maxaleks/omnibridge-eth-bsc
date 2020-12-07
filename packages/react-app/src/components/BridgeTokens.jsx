@@ -3,7 +3,7 @@ import React, { useContext } from 'react';
 
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
-import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
+// import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
 import { FromToken } from './FromToken';
 import { LoadingModal } from './LoadingModal';
 import { SystemFeedback } from './SystemFeedback';
@@ -14,7 +14,7 @@ import { UnlockButton } from './UnlockButton';
 export const BridgeTokens = () => {
   const { network } = useContext(Web3Context);
   const { fromToken } = useContext(BridgeContext);
-  const isERC20Dai = isERC20DaiAddress(fromToken);
+  // const isERC20Dai = isERC20DaiAddress(fromToken);
   const smallScreen = useBreakpointValue({ base: true, lg: false });
 
   return (
@@ -43,7 +43,7 @@ export const BridgeTokens = () => {
                   {network.name}
                 </Text>
               </Flex>
-              {isERC20Dai && <DaiWarning />}
+              {/* {isERC20Dai && <DaiWarning />} */}
               <Flex align="flex-end" direction="column">
                 <Text color="greyText" fontSize="sm">
                   To
@@ -59,7 +59,7 @@ export const BridgeTokens = () => {
             width="100%"
             my={4}
           >
-            {smallScreen && isERC20Dai && <DaiWarning />}
+            {/* {smallScreen && isERC20Dai && <DaiWarning />} */}
             {smallScreen && (
               <Flex align="flex-start" direction="column" m={2}>
                 <Text color="greyText" fontSize="sm">
