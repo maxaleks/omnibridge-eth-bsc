@@ -166,9 +166,11 @@ export const getMonitorUrl = (chainId, hash) => {
   const testUrl = 'https://alm-test-amb.herokuapp.com/';
   switch (chainId) {
     case 1:
-      return `${url}1/${hash}`;
+      return `http://alm-bsc.herokuapp.com/1/${hash}`;
     case 42:
       return `${testUrl}42/${hash}`;
+    case 56:
+      return `http://alm-bsc.herokuapp.com/56/${hash}`;
     case 77:
       return `${testUrl}77/${hash}`;
     case 100:
