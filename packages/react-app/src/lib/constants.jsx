@@ -5,40 +5,46 @@ import { NetworkIcon } from '../icons/NetworkIcon';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
-export const networkOptions = [
-  {
-    value: 100,
-    key: 0,
-    bridge: { chainId: 1, name: 'ETH Mainnet' },
-    label: 'xDai',
-    name: 'xDai Chain',
-    icon: <NetworkIcon />,
-  },
-  {
-    value: 1,
-    key: 1,
-    bridge: { chainId: 100, name: 'xDai Chain' },
-    label: 'Mainnet',
-    name: 'ETH Mainnet',
-    icon: <NetworkIcon />,
-  },
-  // {
-  //   value: 77,
-  //   key: 2,
-  //   bridge: { chainId: 42, name: 'Kovan Testnet' },
-  //   label: 'Sokol',
-  //   name: 'Sokol Testnet',
-  //   icon: <NetworkIcon />,
-  // },
-  // {
-  //   value: 42,
-  //   key: 3,
-  //   bridge: { chainId: 77, name: 'Sokol Testnet' },
-  //   label: 'Kovan',
-  //   name: 'Kovan Testnet',
-  //   icon: <NetworkIcon />,
-  // },
-];
+export const networkOptions =
+  CONFIG.network === 77
+    ? [
+        // sokol
+        {
+          value: 77,
+          key: 0,
+          bridge: { chainId: 42, name: 'Kovan Testnet' },
+          label: 'Sokol',
+          name: 'Sokol Testnet',
+          icon: <NetworkIcon />,
+        },
+        {
+          value: 42,
+          key: 1,
+          bridge: { chainId: 77, name: 'Sokol Testnet' },
+          label: 'Kovan',
+          name: 'Kovan Testnet',
+          icon: <NetworkIcon />,
+        },
+      ]
+    : [
+        // xdai
+        {
+          value: 100,
+          key: 0,
+          bridge: { chainId: 1, name: 'ETH Mainnet' },
+          label: 'xDai',
+          name: 'xDai Chain',
+          icon: <NetworkIcon />,
+        },
+        {
+          value: 1,
+          key: 1,
+          bridge: { chainId: 100, name: 'xDai Chain' },
+          label: 'Mainnet',
+          name: 'ETH Mainnet',
+          icon: <NetworkIcon />,
+        },
+      ];
 
 export const networkNames = {
   100: 'xDai Chain',
@@ -94,6 +100,7 @@ export const defaultTokens = {
   77: {
     name: 'FaucetToken on xDai',
     address: '0x1b457c787792d17bea8d41885ada00e764712cdd',
+    // 0xF69BA830398B031382Df776b19C312CF468A01c8
     symbol: 'FAU',
     decimals: 18,
     chainId: 77,
@@ -101,6 +108,7 @@ export const defaultTokens = {
   42: {
     name: 'FaucetToken',
     address: '0xfab46e002bbf0b4509813474841e0716e6730136',
+    // 0xD089cAFDE5Ffad1190dF379b12933e661905c72d
     symbol: 'FAU',
     decimals: 18,
     chainId: 42,

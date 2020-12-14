@@ -1,8 +1,9 @@
-import { Flex, Grid, Text, useBreakpointValue } from '@chakra-ui/core';
+import { Flex, Grid, Text, useBreakpointValue } from '@chakra-ui/react';
 import React, { useContext } from 'react';
 
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
+import { ClaimTokensModal } from './ClaimTokens';
 import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
 import { FromToken } from './FromToken';
 import { LoadingModal } from './LoadingModal';
@@ -13,7 +14,7 @@ import { UnlockButton } from './UnlockButton';
 
 export const BridgeTokens = () => {
   const { network } = useContext(Web3Context);
-  const { fromToken } = useContext(BridgeContext);
+  const { loading, fromToken } = useContext(BridgeContext);
   const isERC20Dai = isERC20DaiAddress(fromToken);
   const smallScreen = useBreakpointValue({ base: true, lg: false });
 
@@ -30,7 +31,7 @@ export const BridgeTokens = () => {
       mx={4}
       my="auto"
     >
-      <LoadingModal />
+      {loading ? <LoadingModal /> : <ClaimTokensModal />}
       {network && (
         <>
           {!smallScreen && (

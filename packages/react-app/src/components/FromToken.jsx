@@ -3,17 +3,18 @@ import {
   Flex,
   Image,
   Input,
+  Spinner,
   Text,
   useBreakpointValue,
   useDisclosure,
-} from '@chakra-ui/core';
+} from '@chakra-ui/react';
 import React, { useContext, useEffect, useState } from 'react';
 
 import DropDown from '../assets/drop-down.svg';
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
 import { formatValue, parseValue } from '../lib/helpers';
-import { fetchTokenBalanceWithProvider } from '../lib/token';
+import { fetchTokenBalance, fetchTokenBalanceWithProvider } from '../lib/token';
 import { ErrorModal } from './ErrorModal';
 import { Logo } from './Logo';
 import { SelectTokenModal } from './SelectTokenModal';
@@ -21,12 +22,13 @@ import { SelectTokenModal } from './SelectTokenModal';
 export const FromToken = () => {
   const {
     ethersProvider,
-    providerNetwork,
+    providerChainId,
     network,
     networkMismatch,
     account,
   } = useContext(Web3Context);
   const {
+    receipt,
     fromToken: token,
     fromBalance: balance,
     setFromBalance: setBalance,
@@ -48,22 +50,36 @@ export const FromToken = () => {
   };
   const smallScreen = useBreakpointValue({ base: true, lg: false });
 
+  const [balanceLoading, setBalanceLoading] = useState(false);
   useEffect(() => {
-    if (!account) {
+    if (token && account) {
+      setBalanceLoading(true);
+      if (providerChainId === token.chainId && !networkMismatch) {
+        fetchTokenBalanceWithProvider(ethersProvider, token, account).then(
+          b => {
+            setBalance(b);
+            setBalanceLoading(false);
+          },
+        );
+      } else {
+        fetchTokenBalance(token, account).then(b => {
+          setBalance(b);
+          setBalanceLoading(false);
+        });
+      }
+    } else {
       setBalance();
     }
-    if (
-      token &&
-      account &&
-      providerNetwork &&
-      providerNetwork.chainId === token.chainId
-    ) {
-      setBalance();
-      fetchTokenBalanceWithProvider(ethersProvider, token, account).then(b =>
-        setBalance(b),
-      );
-    }
-  }, [token, account, setBalance, ethersProvider, providerNetwork]);
+  }, [
+    token,
+    receipt,
+    account,
+    setBalance,
+    ethersProvider,
+    providerChainId,
+    networkMismatch,
+    setBalanceLoading,
+  ]);
 
   return (
     <Flex
@@ -100,7 +116,7 @@ export const FromToken = () => {
         >
           <Flex
             justify="space-between"
-            align={{ base: 'stretch', sm: 'center' }}
+            align={{ base: 'stretch', sm: 'flex-start' }}
             mb={2}
             direction={{ base: 'column', sm: 'row' }}
           >
@@ -121,13 +137,42 @@ export const FromToken = () => {
               </Text>
               <Image src={DropDown} cursor="pointer" />
             </Flex>
-            {balance >= 0 && (
-              <Text color="grey" mt={{ base: 2, lg: 0 }}>
-                {`Balance: ${formatValue(balance, token.decimals)}`}
-              </Text>
-            )}
+            <Flex
+              flex={1}
+              justify="flex-end"
+              align="center"
+              h="100%"
+              position="relative"
+            >
+              {balanceLoading ? (
+                <Spinner size="sm" color="grey" />
+              ) : (
+                <Text
+                  color="grey"
+                  textAlign="right"
+                  {...(smallScreen
+                    ? {}
+                    : { position: 'absolute', bottom: '4px', right: 0 })}
+                >
+                  {`Balance: ${formatValue(balance || 0, token.decimals)}`}
+                </Text>
+              )}
+            </Flex>
           </Flex>
-          <Flex align="flex-end" flex={1}>
+          <Flex
+            align="flex-end"
+            flex={1}
+            {...(!smallScreen
+              ? {
+                  position: 'absolute',
+                  left: 0,
+                  bottom: 0,
+                  pl: 4,
+                  pr: 12,
+                  pb: 4,
+                }
+              : {})}
+          >
             <Input
               flex={1}
               variant="unstyled"

@@ -1,5 +1,5 @@
-import { Flex, Text, useBreakpointValue } from '@chakra-ui/core';
-import React, { useContext, useEffect } from 'react';
+import { Flex, Spinner, Text, useBreakpointValue } from '@chakra-ui/react';
+import React, { useContext, useEffect, useState } from 'react';
 
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
@@ -10,21 +10,26 @@ import { Logo } from './Logo';
 export const ToToken = () => {
   const { account } = useContext(Web3Context);
   const {
+    receipt,
     toToken: token,
     toAmount: amount,
+    toAmountLoading: loading,
     toBalance: balance,
     setToBalance: setBalance,
   } = useContext(BridgeContext);
   const smallScreen = useBreakpointValue({ base: true, lg: false });
+  const [balanceLoading, setBalanceLoading] = useState(false);
   useEffect(() => {
-    if (!account) {
-      setBalance();
-    }
     if (token && account) {
+      setBalanceLoading(true);
+      fetchTokenBalance(token, account).then(b => {
+        setBalance(b);
+        setBalanceLoading(false);
+      });
+    } else {
       setBalance();
-      fetchTokenBalance(token, account).then(b => setBalance(b));
     }
-  }, [token, account, setBalance]);
+  }, [receipt, token, account, setBalance, setBalanceLoading]);
   return (
     <Flex
       align="center"
@@ -55,7 +60,7 @@ export const ToToken = () => {
         >
           <Flex
             justify="space-between"
-            align={{ base: 'stretch', sm: 'center' }}
+            align={{ base: 'stretch', sm: 'flex-start' }}
             mb={2}
             direction={{ base: 'column', sm: 'row' }}
           >
@@ -77,16 +82,51 @@ export const ToToken = () => {
                 {token.name}
               </Text>
             </Flex>
-            {balance >= 0 && (
-              <Text color="grey" mt={{ base: 2, lg: 0 }}>
-                {`Balance: ${formatValue(balance, token.decimals)}`}
+            <Flex
+              flex={1}
+              justify="flex-end"
+              align="center"
+              h="100%"
+              position="relative"
+            >
+              {balanceLoading ? (
+                <Spinner size="sm" color="grey" />
+              ) : (
+                <Text
+                  color="grey"
+                  textAlign="right"
+                  {...(smallScreen
+                    ? {}
+                    : { position: 'absolute', bottom: '4px', right: 0 })}
+                >
+                  {`Balance: ${formatValue(balance || 0, token.decimals)}`}
+                </Text>
+              )}
+            </Flex>
+          </Flex>
+          <Flex
+            justify="center"
+            direction="column"
+            flex={1}
+            {...(!smallScreen
+              ? {
+                  position: 'absolute',
+                  left: 0,
+                  bottom: 0,
+                  pl: 12,
+                  pr: 4,
+                  pb: 4,
+                }
+              : {})}
+            h="52px"
+          >
+            {loading ? (
+              <Spinner color="black" size="sm" />
+            ) : (
+              <Text fontWeight="bold" fontSize="2xl">
+                {formatValue(amount, token.decimals)}
               </Text>
             )}
-          </Flex>
-          <Flex align="flex-end" flex={1}>
-            <Text fontWeight="bold" fontSize="2xl">
-              {formatValue(amount, token.decimals)}
-            </Text>
           </Flex>
         </Flex>
       )}

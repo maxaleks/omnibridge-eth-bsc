@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   Text,
-} from '@chakra-ui/core';
+} from '@chakra-ui/react';
 import React, { useContext } from 'react';
 
 import { Web3Context } from '../contexts/Web3Context';
@@ -24,7 +24,7 @@ export const WalletSelector = props => {
     connectWeb3,
     disconnect,
     account,
-    providerNetwork,
+    providerChainId,
     network,
     networkMismatch,
   } = useContext(Web3Context);
@@ -58,10 +58,7 @@ export const WalletSelector = props => {
           >
             <PopoverBody width="100%" align="center" p={4}>
               <Flex justify="space-between" align="center">
-                <Text>
-                  {' '}
-                  Connected to {getNetworkName(providerNetwork.chainId)}{' '}
-                </Text>
+                <Text>Connected to {getNetworkName(providerChainId)}</Text>
                 <Button colorScheme="blue" onClick={disconnect}>
                   <Text> Disconnect </Text>
                 </Button>

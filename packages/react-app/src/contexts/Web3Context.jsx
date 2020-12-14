@@ -24,27 +24,45 @@ const web3Modal = new Web3Modal({
 });
 
 export const Web3Provider = ({ children }) => {
-  const [providerNetwork, setProviderNetwork] = useState();
+  const [providerChainId, setProviderChainId] = useState();
   const [chosenNetwork, setChosenNetwork] = useState(networkOptions[0]);
   const [ethersProvider, setEthersProvider] = useState();
   const [account, setAccount] = useState();
   const [networkMismatch, setNetworkMismatch] = useState(false);
 
-  const connectWeb3 = useCallback(async () => {
-    try {
-      const modalProvider = await web3Modal.connect();
-
-      const web3Provider = new Web3(modalProvider);
+  const setWeb3Provider = async (prov, updateAccount = false) => {
+    if (prov) {
+      const web3Provider = new Web3(prov);
       const provider = new ethers.providers.Web3Provider(
         web3Provider.currentProvider,
       );
 
       setEthersProvider(provider);
       const network = await provider.getNetwork();
-      setProviderNetwork(network);
-      const signer = provider.getSigner();
-      const gotAccount = await signer.getAddress();
-      setAccount(gotAccount);
+      setProviderChainId(network.chainId);
+      if (updateAccount) {
+        const signer = provider.getSigner();
+        const gotAccount = await signer.getAddress();
+        setAccount(gotAccount);
+      }
+    }
+  };
+
+  const connectWeb3 = useCallback(async () => {
+    try {
+      const modalProvider = await web3Modal.connect();
+
+      setWeb3Provider(modalProvider, true);
+
+      // Subscribe to accounts change
+      modalProvider.on('accountsChanged', accounts => {
+        setAccount(accounts[0]);
+      });
+
+      // Subscribe to chainId change
+      modalProvider.on('chainChanged', _chainId => {
+        setWeb3Provider(modalProvider);
+      });
     } catch (error) {
       // eslint-disable-next-line
       console.log({ web3ModalError: error });
@@ -52,25 +70,24 @@ export const Web3Provider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (
-      providerNetwork &&
-      chosenNetwork &&
-      providerNetwork.chainId === chosenNetwork.value
-    ) {
+    if (chosenNetwork && providerChainId === chosenNetwork.value) {
       setNetworkMismatch(false);
     } else {
       setNetworkMismatch(true);
     }
-  }, [chosenNetwork, providerNetwork]);
+  }, [chosenNetwork, providerChainId]);
 
   const disconnect = useCallback(async () => {
     web3Modal.clearCachedProvider();
     setAccount();
     setEthersProvider();
-    setProviderNetwork();
+    setProviderChainId();
   }, []);
 
   useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.autoRefreshOnNetworkChange = false;
+    }
     if (web3Modal.cachedProvider) {
       connectWeb3().catch(error => {
         // eslint-disable-next-line
@@ -85,7 +102,7 @@ export const Web3Provider = ({ children }) => {
         ethersProvider,
         connectWeb3,
         disconnect,
-        providerNetwork,
+        providerChainId,
         network: chosenNetwork,
         setNetwork: setChosenNetwork,
         account,

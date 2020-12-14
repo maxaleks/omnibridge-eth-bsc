@@ -1,6 +1,7 @@
 import {
   Button,
   Flex,
+  Image,
   Input,
   InputGroup,
   Modal,
@@ -11,10 +12,11 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
-} from '@chakra-ui/core';
+} from '@chakra-ui/react';
 import { utils } from 'ethers';
 import React, { useContext, useRef, useState } from 'react';
 
+import CustomTokenImage from '../assets/custom-token.png';
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
 import { uniqueTokens } from '../lib/helpers';
@@ -102,16 +104,18 @@ export const CustomTokenModal = ({ isOpen, onClose, onBack }) => {
         >
           <ModalHeader p={6}>
             <Text>Add Custom Token</Text>
+            <Image src={CustomTokenImage} w="100%" mt={4} />
           </ModalHeader>
           <ModalCloseButton
             size="lg"
             top={-10}
             right={-10}
             color="white"
+            p={2}
             // _focus={{ border: 'none', outline: 'none' }}
           />
           <ModalBody px={6} py={0}>
-            <Flex flexDirection="column">
+            <Flex direction="column">
               <Text mb={2}>Token Contract Address</Text>
               <InputGroup mb={4} borderColor="#DAE3F0">
                 <Input
