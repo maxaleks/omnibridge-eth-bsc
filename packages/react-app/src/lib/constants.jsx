@@ -1,9 +1,18 @@
+import { BigNumber } from 'ethers';
 import React from 'react';
 
-import { CONFIG } from '../config';
 import { NetworkIcon } from '../icons/NetworkIcon';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+
+export const LARGEST_UINT256 = BigNumber.from(
+  '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+);
+
+export const POLLING_INTERVAL =
+  process.env.REACT_APP_UI_STATUS_UPDATE_INTERVAL || 1000;
+
+export const HOME_NETWORK = 56;
 
 // export const networkOptions = [ // prod
 //   {
@@ -83,6 +92,14 @@ export const networkNames = {
   56: 'Binance Smart Chain',
 };
 
+export const networkLabels = {
+  1: 'Mainnet',
+  42: 'Kovan',
+  56: 'BSC',
+  77: 'Sokol',
+  100: 'xDai',
+};
+
 export const chainUrls = {
   100: {
     rpc: 'https://xdai.poanetwork.dev',
@@ -91,10 +108,11 @@ export const chainUrls = {
     name: 'xDai Chain',
   },
   1: {
-    rpc: `https://mainnet.infura.io/v3/${CONFIG.infuraId}`,
+    rpc: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_ID}`,
     explorer: 'https://etherscan.io',
     chainId: 1,
     name: 'ETH Mainnet',
+    monitor: 'http://alm-bsc.herokuapp.com',
   },
   77: {
     rpc: 'https://sokol.poa.network',
@@ -103,7 +121,7 @@ export const chainUrls = {
     name: 'Sokol Testnet',
   },
   42: {
-    rpc: `https://kovan.infura.io/v3/${CONFIG.infuraId}`,
+    rpc: `https://kovan.infura.io/v3/${process.env.REACT_APP_INFURA_ID}`,
     explorer: 'https://kovan.etherscan.io',
     chainId: 42,
     name: 'Kovan Testnet',
@@ -113,6 +131,7 @@ export const chainUrls = {
     explorer: 'https://bscscan.com',
     chainId: 56,
     name: 'Binance Smart Chain',
+    monitor: 'http://alm-bsc.herokuapp.com',
   },
 };
 
