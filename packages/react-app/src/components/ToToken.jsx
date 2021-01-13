@@ -1,35 +1,45 @@
 import { Flex, Spinner, Text, useBreakpointValue } from '@chakra-ui/react';
+import { BigNumber, utils } from 'ethers';
 import React, { useContext, useEffect, useState } from 'react';
 
 import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
-import { formatValue } from '../lib/helpers';
+import { formatValue, logError } from '../lib/helpers';
 import { fetchTokenBalance } from '../lib/token';
 import { Logo } from './Logo';
 
 export const ToToken = () => {
   const { account } = useContext(Web3Context);
   const {
-    receipt,
+    updateBalance,
     toToken: token,
     toAmount: amount,
     toAmountLoading: loading,
     toBalance: balance,
     setToBalance: setBalance,
   } = useContext(BridgeContext);
+
   const smallScreen = useBreakpointValue({ base: true, lg: false });
   const [balanceLoading, setBalanceLoading] = useState(false);
+
   useEffect(() => {
     if (token && account) {
       setBalanceLoading(true);
-      fetchTokenBalance(token, account).then(b => {
-        setBalance(b);
-        setBalanceLoading(false);
-      });
+      fetchTokenBalance(token, account)
+        .then(b => {
+          setBalance(b);
+          setBalanceLoading(false);
+        })
+        .catch(contractError => {
+          logError({ contractError });
+          setBalance(BigNumber.from(0));
+          setBalanceLoading(false);
+        });
     } else {
-      setBalance();
+      setBalance(BigNumber.from(0));
     }
-  }, [receipt, token, account, setBalance, setBalanceLoading]);
+  }, [updateBalance, token, account, setBalance, setBalanceLoading]);
+
   return (
     <Flex
       align="center"
@@ -38,7 +48,8 @@ export const ToToken = () => {
       position="relative"
       borderRadius="0.25rem"
       background={{ base: '#EEF4FD', lg: 'transparent' }}
-      minH={8}
+      minH={smallScreen ? '5rem' : 8}
+      minW={smallScreen ? '15rem' : undefined}
     >
       {!smallScreen && (
         <svg width="100%" viewBox="0 0 381 94" fill="none">
@@ -60,7 +71,7 @@ export const ToToken = () => {
         >
           <Flex
             justify="space-between"
-            align={{ base: 'stretch', sm: 'flex-start' }}
+            align={{ base: 'stretch', sm: 'center', lg: 'flex-start' }}
             mb={2}
             direction={{ base: 'column', sm: 'row' }}
           >
@@ -88,6 +99,7 @@ export const ToToken = () => {
               align="center"
               h="100%"
               position="relative"
+              ml={{ base: undefined, sm: 2, md: undefined }}
             >
               {balanceLoading ? (
                 <Spinner size="sm" color="grey" />
@@ -99,7 +111,7 @@ export const ToToken = () => {
                     ? {}
                     : { position: 'absolute', bottom: '4px', right: 0 })}
                 >
-                  {`Balance: ${formatValue(balance || 0, token.decimals)}`}
+                  {`Balance: ${formatValue(balance, token.decimals)}`}
                 </Text>
               )}
             </Flex>
@@ -124,7 +136,7 @@ export const ToToken = () => {
               <Spinner color="black" size="sm" />
             ) : (
               <Text fontWeight="bold" fontSize="2xl">
-                {formatValue(amount, token.decimals)}
+                {utils.formatUnits(amount, token.decimals)}
               </Text>
             )}
           </Flex>

@@ -1,18 +1,23 @@
 import { gql, request } from 'graphql-request';
 import { useContext, useEffect, useState } from 'react';
 
+import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
+import { HOME_NETWORK } from './constants';
 import { getBridgeNetwork, getGraphEndpoint } from './helpers';
 
 const pageSize = 1000;
 
-const historyQuery = gql`
-  query getHistory($user: String!, $first: Int!, $skip: Int!) {
+const requestsQuery = gql`
+  query getRequests($user: String!, $first: Int!, $skip: Int!) {
     requests: userRequests(
       where: { user_contains: $user }
+      orderBy: txHash
+      orderDirection: desc
       first: $first
       skip: $skip
     ) {
+      user
       txHash
       messageId
       timestamp
@@ -21,19 +26,32 @@ const historyQuery = gql`
       decimals
       symbol
       message {
+        txHash
+        msgId
         msgData
         signatures
       }
     }
-    executions(where: { user_contains: $user }, first: $first, skip: $skip) {
+  }
+`;
+
+const executionsQuery = gql`
+  query getExecutions($first: Int!, $skip: Int!, $messageIds: [Bytes!]) {
+    executions(
+      where: { messageId_in: $messageIds }
+      first: $first
+      skip: $skip
+      orderBy: txHash
+      orderDirection: desc
+    ) {
       txHash
       messageId
     }
   }
 `;
 
-export const getTransfers = async (user, chainId) => {
-  let requests = [];
+export const getExecutions = async (chainId, requests) => {
+  const messageIds = requests.map(r => r.messageId);
   let executions = [];
   let page = 0;
   const first = pageSize;
@@ -41,30 +59,49 @@ export const getTransfers = async (user, chainId) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
-    const data = await request(getGraphEndpoint(chainId), historyQuery, {
+    const data = await request(getGraphEndpoint(chainId), executionsQuery, {
+      first,
+      skip: page * pageSize,
+      messageIds,
+    });
+    if (data) {
+      executions = data.executions.concat(executions);
+    }
+    if (!data || data.executions.length < pageSize) break;
+    page += 1;
+  }
+
+  return { executions };
+};
+
+export const getRequests = async (user, chainId) => {
+  let requests = [];
+  let page = 0;
+  const first = pageSize;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    // eslint-disable-next-line no-await-in-loop
+    const data = await request(getGraphEndpoint(chainId), requestsQuery, {
       user,
       first,
       skip: page * pageSize,
     });
     if (data) {
       requests = data.requests.concat(requests);
-      executions = data.executions.concat(executions);
     }
-    if (
-      !data ||
-      (data.requests.length < pageSize && data.executions.length < pageSize)
-    )
-      break;
+    if (!data || data.requests.length < pageSize) break;
     page += 1;
   }
 
-  return { requests, executions };
+  return { requests };
 };
 
 function combineRequestsWithExecutions(requests, executions, chainId) {
   return requests.map(req => {
     const execution = executions.find(exec => exec.messageId === req.messageId);
     return {
+      user: req.user,
       chainId,
       timestamp: req.timestamp,
       sendingTx: req.txHash,
@@ -79,21 +116,28 @@ function combineRequestsWithExecutions(requests, executions, chainId) {
 }
 
 export function useUserHistory() {
-  const { network, account } = useContext(Web3Context);
-  const [transfers, setTransfers] = useState([]);
+  const { account } = useContext(Web3Context);
+  const [transfers, setTransfers] = useState();
   const [loading, setLoading] = useState(true);
-  const chainId = network.value;
-  const bridgeChainId = getBridgeNetwork(chainId);
+  const chainId = HOME_NETWORK;
 
   useEffect(() => {
-    if (!account || !network.value) return () => undefined;
+    if (!account || !chainId) return;
+    const bridgeChainId = getBridgeNetwork(chainId);
     async function update() {
       const [
-        { requests: homeRequests, executions: homeExecutions },
-        { requests: foreignRequests, executions: foreignExecutions },
+        { requests: homeRequests },
+        { requests: foreignRequests },
       ] = await Promise.all([
-        getTransfers(account, chainId),
-        getTransfers(account, bridgeChainId),
+        getRequests(account, chainId),
+        getRequests(account, bridgeChainId),
+      ]);
+      const [
+        { executions: homeExecutions },
+        { executions: foreignExecutions },
+      ] = await Promise.all([
+        getExecutions(chainId, foreignRequests),
+        getExecutions(bridgeChainId, homeRequests),
       ]);
       const homeTransfers = combineRequestsWithExecutions(
         homeRequests,
@@ -111,11 +155,41 @@ export function useUserHistory() {
       setTransfers(allTransfers);
       setLoading(false);
     }
+    setTransfers();
+    setLoading(true);
     update();
-    const interval = 10000; // 10 seconds
-    const intervalId = setInterval(update, interval);
-    return () => clearInterval(intervalId);
-  }, [chainId, bridgeChainId, network.value, account]);
+  }, [chainId, account]);
+
+  return { transfers, loading };
+}
+
+export function useClaimableTransfers() {
+  const { account, providerChainId } = useContext(Web3Context);
+  const { txHash } = useContext(BridgeContext);
+  const [transfers, setTransfers] = useState();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!account || !providerChainId) return;
+    const chainId = HOME_NETWORK;
+    const bridgeChainId = getBridgeNetwork(chainId);
+    async function update() {
+      setLoading(true);
+      setTransfers();
+      const { requests } = await getRequests(account, chainId);
+      const { executions } = await getExecutions(bridgeChainId, requests);
+      const xDaiTransfers = combineRequestsWithExecutions(
+        requests,
+        executions,
+        chainId,
+      )
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .filter(t => !t.receivingTx);
+      setTransfers(xDaiTransfers);
+      setLoading(false);
+    }
+    update();
+  }, [account, providerChainId, txHash]);
 
   return { transfers, loading };
 }
