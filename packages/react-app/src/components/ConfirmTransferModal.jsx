@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Divider,
   Flex,
@@ -12,36 +13,70 @@ import {
   ModalOverlay,
   Text,
   useBreakpointValue,
+  useToast,
 } from '@chakra-ui/react';
 import React, { useContext, useEffect, useState } from 'react';
 
+import AlertImage from '../assets/alert.svg';
 import TransferImage from '../assets/confirm-transfer.svg';
 import { BridgeContext } from '../contexts/BridgeContext';
-import { formatValue, isxDaiChain } from '../lib/helpers';
+import { formatValue, getAccountString, isxDaiChain } from '../lib/helpers';
 // import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
 
 export const ConfirmTransferModal = ({ isOpen, onClose }) => {
-  const { fromToken, toToken, fromAmount, toAmount, transfer } = useContext(
-    BridgeContext,
-  );
+  const {
+    receiver,
+    fromToken,
+    toToken,
+    fromAmount,
+    toAmount,
+    transfer,
+  } = useContext(BridgeContext);
   const [fee, setFee] = useState(0);
   useEffect(() => {
     setFee(
       ((Number(fromAmount) - Number(toAmount)) * 100) / Number(fromAmount),
     );
   }, [fromAmount, toAmount]);
+  const smallScreen = useBreakpointValue({ base: true, md: false });
+  const toast = useToast();
+  if (!fromToken || !toToken) return null;
   const isxDai = isxDaiChain(fromToken.chainId);
+  const isBridgedToken = fromToken.name.endsWith(isxDai ? 'xDai' : 'Mainnet');
   const fromAmt = formatValue(fromAmount, fromToken.decimals);
-  const fromUnit = fromToken.symbol + (isxDai ? ' on BSC' : '');
+  const fromUnit = isBridgedToken
+    ? fromToken.symbol + (isxDai ? ' on BSC' : ' on Mainnet')
+    : fromToken.symbol;
   const toAmt = formatValue(toAmount, toToken.decimals);
-  const toUnit = toToken.symbol + (isxDai ? '' : ' on BSC');
+  const toUnit = !isBridgedToken
+    ? toToken.symbol + (!isxDai ? ' on BSC' : ' on Mainnet')
+    : toToken.symbol;
   // const isERC20Dai = isERC20DaiAddress(fromToken);
 
+  const showError = msg => {
+    if (msg) {
+      toast({
+        title: 'Error',
+        description: msg,
+        status: 'error',
+        isClosable: 'true',
+      });
+    }
+  };
   const onClick = () => {
-    transfer();
+    transfer().catch(error => {
+      if (
+        error &&
+        error.message &&
+        !error.message.includes('User denied transaction signature')
+      ) {
+        showError(
+          'Impossible to perform the operation. Reload the application and try again.',
+        );
+      }
+    });
     onClose();
   };
-  const smallScreen = useBreakpointValue({ base: true, md: false });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -49,7 +84,7 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
         <ModalContent
           boxShadow="0px 1rem 2rem #617492"
           borderRadius="1rem"
-          maxW="30rem"
+          maxW="33.75rem"
           mx={{ base: 12, lg: 0 }}
         >
           <ModalHeader p={6}>
@@ -61,7 +96,7 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
             top={-10}
             right={-10}
             color="white"
-            // _focus={{ border: 'none', outline: 'none' }}
+            p={2}
           />
           <ModalBody px={6} py={0}>
             <Flex align="center" direction={{ base: 'column', md: 'row' }}>
@@ -128,9 +163,47 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
               {`Bridge Fees ${Number(fee.toFixed(3))}%`}
             </Flex>
             <Divider color="#DAE3F0" my={4} />
-            <Flex w="100%" fontSize="sm" color="grey" align="center">
-              {`Please confirm that you would like to send ${fromAmt} and receive ${toAmt}.`}
-            </Flex>
+            <Box w="100%" fontSize="sm" color={isxDai ? 'black' : 'grey'}>
+              <Text as="span">{`Please confirm that you would like to send `}</Text>
+              <Text as="b">{`${fromAmt} ${fromUnit}`}</Text>
+              {receiver ? (
+                <>
+                  <Text as="span">{` and `}</Text>
+                  <Text as="b">{getAccountString(receiver)}</Text>
+                  <Text as="span">{` will receive `}</Text>
+                </>
+              ) : (
+                <Text as="span">{` and receive `}</Text>
+              )}
+              <Text as="b">{`${toAmt} ${toUnit}`}</Text>
+            </Box>
+            {isxDai && (
+              <Flex
+                mt={4}
+                w="100%"
+                borderRadius="4px"
+                border="1px solid #DAE3F0"
+              >
+                <Flex
+                  bg="#FFF7EF"
+                  borderLeftRadius="4px"
+                  border="1px solid #FFAA5C"
+                  justify="center"
+                  align="center"
+                  minW="4rem"
+                  flex={1}
+                >
+                  <Image src={AlertImage} />
+                </Flex>
+                <Flex align="center" fontSize="12px" p={4}>
+                  <Text>
+                    The claim process requires 2 transactions, one on xDai chain
+                    and one on ETH Mainnet. You will need some xDai and some ETH
+                    to complete.
+                  </Text>
+                </Flex>
+              </Flex>
+            )}
           </ModalBody>
           <ModalFooter p={6}>
             <Flex
