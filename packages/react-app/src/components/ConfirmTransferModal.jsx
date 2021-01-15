@@ -21,7 +21,6 @@ import AlertImage from '../assets/alert.svg';
 import TransferImage from '../assets/confirm-transfer.svg';
 import { BridgeContext } from '../contexts/BridgeContext';
 import { formatValue, getAccountString, isxDaiChain } from '../lib/helpers';
-import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
 
 export const ConfirmTransferModal = ({ isOpen, onClose }) => {
   const {
@@ -42,16 +41,15 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
   const toast = useToast();
   if (!fromToken || !toToken) return null;
   const isxDai = isxDaiChain(fromToken.chainId);
-  const isBridgedToken = fromToken.name.endsWith(isxDai ? 'xDai' : 'Mainnet');
+  const isBridgedToken = fromToken.name.endsWith(isxDai ? 'BSC' : 'Mainnet');
   const fromAmt = formatValue(fromAmount, fromToken.decimals);
   const fromUnit = isBridgedToken
-    ? fromToken.symbol + (isxDai ? ' on xDai' : ' on Mainnet')
+    ? fromToken.symbol + (isxDai ? ' on BSC' : ' on Mainnet')
     : fromToken.symbol;
   const toAmt = formatValue(toAmount, toToken.decimals);
   const toUnit = !isBridgedToken
-    ? toToken.symbol + (!isxDai ? ' on xDai' : ' on Mainnet')
+    ? toToken.symbol + (!isxDai ? ' on BSC' : ' on Mainnet')
     : toToken.symbol;
-  const isERC20Dai = isERC20DaiAddress(fromToken);
 
   const showError = msg => {
     if (msg) {
@@ -88,7 +86,6 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
           mx={{ base: 12, lg: 0 }}
         >
           <ModalHeader p={6}>
-            {isERC20Dai && <DaiWarning />}
             <Text>Confirm Transfer</Text>
           </ModalHeader>
           <ModalCloseButton

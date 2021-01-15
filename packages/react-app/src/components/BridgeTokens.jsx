@@ -9,7 +9,6 @@ import { AdvancedMenu } from './AdvancedMenu';
 import { BridgeLoadingModal } from './BridgeLoadingModal';
 import { ClaimTokensModal } from './ClaimTokensModal';
 import { ClaimTransferModal } from './ClaimTransferModal';
-import { DaiWarning, isERC20DaiAddress } from './DaiWarning';
 import { FromToken } from './FromToken';
 import { SystemFeedback } from './SystemFeedback';
 import { ToToken } from './ToToken';
@@ -18,8 +17,7 @@ import { UnlockButton } from './UnlockButton';
 
 export const BridgeTokens = () => {
   const { providerChainId: chainId } = useContext(Web3Context);
-  const { fromToken, txHash, loading } = useContext(BridgeContext);
-  const isERC20Dai = isERC20DaiAddress(fromToken);
+  const { txHash, loading } = useContext(BridgeContext);
   const smallScreen = useBreakpointValue({ base: true, lg: false });
   const bridgeChainId = getBridgeNetwork(chainId);
 
@@ -53,7 +51,6 @@ export const BridgeTokens = () => {
               {getNetworkName(chainId)}
             </Text>
           </Flex>
-          {isERC20Dai && <DaiWarning />}
           <Flex align="flex-end" direction="column">
             <Text color="greyText" fontSize="sm">
               To
@@ -69,7 +66,6 @@ export const BridgeTokens = () => {
         width="100%"
         my={4}
       >
-        {smallScreen && isERC20Dai && <DaiWarning />}
         {smallScreen && (
           <Flex align="flex-start" direction="column" m={2}>
             <Text color="greyText" fontSize="sm">

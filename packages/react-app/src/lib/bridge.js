@@ -13,11 +13,11 @@ import { fetchTokenDetails } from './token';
 
 const getToName = (fromName, fromxDai) => {
   if (fromxDai) {
-    if (fromName.includes('xDai')) return fromName.slice(0, -8);
+    if (fromName.includes('BSC')) return fromName.slice(0, -7);
     return `${fromName} on Mainnet`;
   }
   if (fromName.includes('Mainnet')) return fromName.slice(0, -11);
-  return `${fromName} on xDai`;
+  return `${fromName} on BSC`;
 };
 
 export const fetchToTokenDetails = async ({
@@ -57,7 +57,7 @@ export const fetchToTokenDetails = async ({
 
     const toAddress = await toMediatorContract.bridgedTokenAddress(fromAddress);
 
-    const toName = isxDai ? `${fromName} on Mainnet` : `${fromName} on xDai`;
+    const toName = isxDai ? `${fromName} on Mainnet` : `${fromName} on BSC`;
     return {
       name: toName,
       chainId: toChainId,

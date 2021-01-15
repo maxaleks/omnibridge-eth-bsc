@@ -9,14 +9,14 @@ export const LARGEST_UINT256 = BigNumber.from(
 export const POLLING_INTERVAL =
   process.env.REACT_APP_UI_STATUS_UPDATE_INTERVAL || 1000;
 
-export const HOME_NETWORK =
-  process.env.REACT_APP_HOME_NETWORK === 'xdai' ? 100 : 77;
+export const HOME_NETWORK = 56;
 
 export const INFURA_ID = process.env.REACT_APP_INFURA_ID;
 
 export const networkNames = {
   1: 'ETH Mainnet',
   42: 'Kovan Testnet',
+  56: 'Binance Smart Chain',
   77: 'Sokol Testnet',
   100: 'xDai Chain',
 };
@@ -24,6 +24,7 @@ export const networkNames = {
 export const networkLabels = {
   1: 'Mainnet',
   42: 'Kovan',
+  56: 'Binance Smart Chain',
   77: 'Sokol',
   100: 'xDai',
 };
@@ -49,7 +50,7 @@ export const chainUrls = {
       'https://blockscout.com/eth/mainnet',
     monitor:
       process.env.REACT_APP_AMB_LIVE_MONITOR_PREFIX ||
-      'https://alm-xdai.herokuapp.com',
+      'http://alm-bsc.herokuapp.com',
     chainId: 1,
     name: networkNames[1],
   },
@@ -77,6 +78,18 @@ export const chainUrls = {
     chainId: 42,
     name: networkNames[42],
   },
+  56: {
+    rpc:
+      process.env.REACT_APP_FOREIGN_RPC_URL ||
+      'https://bsc-dataseed.binance.org/',
+    explorer:
+      process.env.REACT_APP_FOREIGN_EXPLORER_PREFIX || 'https://bscscan.com',
+    monitor:
+      process.env.REACT_APP_AMB_LIVE_MONITOR_PREFIX ||
+      'http://alm-bsc.herokuapp.com',
+    chainId: 56,
+    name: networkNames[56],
+  },
 };
 
 export const defaultTokens = {
@@ -89,7 +102,7 @@ export const defaultTokens = {
     mode: 'erc677',
   },
   1: {
-    name: 'Stake',
+    name: 'STAKE',
     address: '0x0Ae055097C6d159879521C384F1D2123D1f195e6',
     symbol: 'STAKE',
     decimals: 18,
@@ -114,13 +127,22 @@ export const defaultTokens = {
     name: 'STAKE',
     symbol: 'STAKE',
   },
+  56: {
+    address: '0xe55e614862694214f0339adb551393cb56149323',
+    chainId: 56,
+    decimals: 18,
+    mode: 'erc677',
+    name: 'STAKE on BSC',
+    symbol: 'STAKE',
+  },
 };
 
 export const graphEndpoints = {
   100: 'https://api.thegraph.com/subgraphs/name/raid-guild/xdai-omnibridge',
-  1: 'https://api.thegraph.com/subgraphs/name/raid-guild/mainnet-omnibridge',
+  1: 'https://api.thegraph.com/subgraphs/name/maxaleks/mainnet-to-bsc-omnibridge',
   77: 'https://api.thegraph.com/subgraphs/name/dan13ram/sokol-omnibridge',
   42: 'https://api.thegraph.com/subgraphs/name/dan13ram/kovan-omnibridge',
+  56: 'https://api.bscgraph.org/subgraphs/name/bsc-to-mainnet-omnibridge',
 };
 
 export const mediators = {
@@ -132,10 +154,13 @@ export const mediators = {
     '0x40CdfF886715A4012fAD0219D15C98bB149AeF0e',
   1:
     process.env.REACT_APP_FOREIGN_MEDIATOR_ADDRESS ||
-    '0x88ad09518695c6c3712AC10a214bE5109a655671',
+    '0x69c707d975e8d883920003CC357E556a4732CD03',
   100:
     process.env.REACT_APP_HOME_MEDIATOR_ADDRESS ||
     '0xf6A78083ca3e2a662D6dd1703c939c8aCE2e268d',
+  56:
+    process.env.REACT_APP_HOME_MEDIATOR_ADDRESS ||
+    '0xD83893F31AA1B6B9D97C9c70D3492fe38D24d218',
 };
 
 export const ambs = {
@@ -147,10 +172,13 @@ export const ambs = {
     '0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560',
   1:
     process.env.REACT_APP_HOME_AMB_ADDRESS ||
-    '0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e',
+    '0x07955be2967B655Cf52751fCE7ccC8c61EA594e2',
   100:
     process.env.REACT_APP_FOREIGN_AMB_ADDRESS ||
     '0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59',
+  56:
+    process.env.REACT_APP_FOREIGN_AMB_ADDRESS ||
+    '0x6943A218d58135793F1FE619414eD476C37ad65a',
 };
 
 export const defaultTokensUrl = {
@@ -158,4 +186,5 @@ export const defaultTokensUrl = {
   1: 'https://tokens.uniswap.org',
   42: '',
   77: '',
+  56: '',
 };

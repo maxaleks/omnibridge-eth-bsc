@@ -68,7 +68,13 @@ export function handleNewToken(event: NewTokenRegistered): void {
   token.decimals = tokenObject.decimals;
 
   let network = dataSource.network();
-  if (network == 'xdai') {
+  if (network == 'mainnet') {
+    // Binance Smart Chain
+    token.homeChainId = 56;
+    token.foreignChainId = 1;
+    token.homeName = tokenObject.name;
+    token.foreignName = tokenObject.name.slice(0, -7);
+  } else if (network == 'xdai') {
     token.homeChainId = 100;
     token.foreignChainId = 1;
     token.homeName = tokenObject.name;
@@ -81,11 +87,6 @@ export function handleNewToken(event: NewTokenRegistered): void {
   } else if (network == 'kovan') {
     token.homeChainId = 42;
     token.foreignChainId = 77;
-    token.homeName = tokenObject.name;
-    token.foreignName = tokenObject.name.slice(0, -11);
-  } else if (network == 'mainnet') {
-    token.homeChainId = 1;
-    token.foreignChainId = 100;
     token.homeName = tokenObject.name;
     token.foreignName = tokenObject.name.slice(0, -11);
   }
