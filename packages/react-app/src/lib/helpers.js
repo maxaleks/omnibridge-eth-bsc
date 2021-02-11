@@ -9,6 +9,7 @@ import {
   mediators,
   networkLabels,
   networkNames,
+  subgraphNames,
 } from './constants';
 import { getOverriddenMediator, isOverridden } from './overrides';
 
@@ -51,12 +52,15 @@ export const getMediatorAddressWithOverride = (tokenAddress, chainId) => {
 };
 
 export const getMediatorAddress = chainId =>
-  mediators[chainId] || mediators[100];
+  mediators[chainId].toLowerCase() || mediators[100].toLowerCase();
+
 export const getNetworkName = chainId => networkNames[chainId] || 'Unknown';
 export const getNetworkLabel = chainId => networkLabels[chainId] || 'Unknown';
 export const getAMBAddress = chainId => ambs[chainId] || ambs[100];
 export const getGraphEndpoint = chainId =>
   graphEndpoints[chainId] || graphEndpoints[100];
+export const getSubgraphName = chainId =>
+  subgraphNames[chainId] || subgraphNames[100];
 export const getRPCUrl = chainId => (chainUrls[chainId] || chainUrls[100]).rpc;
 export const getExplorerUrl = chainId =>
   (chainUrls[chainId] || chainUrls[100]).explorer;
@@ -82,6 +86,16 @@ export const uniqueTokens = list => {
 
 export const formatValue = (num, dec) => {
   const str = utils.formatUnits(num, dec);
+  if (str.length > 50) {
+    const expStr = Number(str)
+      .toExponential()
+      .replace(/e\+?/, ' x 10^');
+    const split = expStr.split(' x 10^');
+    const first = Number(split[0]).toLocaleString('en', {
+      maximumFractionDigits: 4,
+    });
+    return `${first} x 10^${split[1]}`;
+  }
   return Number(str).toLocaleString('en', { maximumFractionDigits: 4 });
 };
 
@@ -125,8 +139,13 @@ export const getAccountString = account => {
 };
 
 export const logError = error => {
+  // eslint-disable-next-line no-console
+  console.error(error);
+};
+
+export const logDebug = error => {
   if (process.env.REACT_APP_DEBUG_LOGS === 'true') {
     // eslint-disable-next-line no-console
-    console.error(error);
+    console.debug(error);
   }
 };

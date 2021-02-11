@@ -81,46 +81,39 @@ export const chainUrls = {
 
 export const defaultTokens = {
   100: {
-    name: 'Stake on xDai',
     address: '0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e',
-    symbol: 'STAKE',
-    decimals: 18,
     chainId: 100,
-    mode: 'erc677',
+    symbol: 'STAKE',
   },
   1: {
-    name: 'Stake',
     address: '0x0Ae055097C6d159879521C384F1D2123D1f195e6',
-    symbol: 'STAKE',
-    decimals: 18,
     chainId: 1,
-    logoURI:
-      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x0Ae055097C6d159879521C384F1D2123D1f195e6/logo.png',
-    mode: 'erc20',
+    symbol: 'STAKE',
   },
   77: {
     address: '0x408ec1bb883da0ea0fb3c955ea6befcd05aa7c3a',
     chainId: 77,
-    decimals: 18,
-    mode: 'erc677',
-    name: 'STAKE on xDai',
     symbol: 'STAKE',
   },
   42: {
     address: '0xFD2df5dCe4c89B007A43CF88d8161dAf1A17C7AB',
     chainId: 42,
-    decimals: 18,
-    mode: 'erc20',
-    name: 'STAKE',
     symbol: 'STAKE',
   },
 };
 
+export const subgraphNames = {
+  100: 'raid-guild/xdai-omnibridge',
+  1: 'raid-guild/mainnet-omnibridge',
+  77: 'dan13ram/sokol-omnibridge',
+  42: 'dan13ram/kovan-omnibridge',
+};
+
 export const graphEndpoints = {
-  100: 'https://api.thegraph.com/subgraphs/name/raid-guild/xdai-omnibridge',
-  1: 'https://api.thegraph.com/subgraphs/name/raid-guild/mainnet-omnibridge',
-  77: 'https://api.thegraph.com/subgraphs/name/dan13ram/sokol-omnibridge',
-  42: 'https://api.thegraph.com/subgraphs/name/dan13ram/kovan-omnibridge',
+  100: `https://api.thegraph.com/subgraphs/name/${subgraphNames[100]}`,
+  1: `https://api.thegraph.com/subgraphs/name/${subgraphNames[1]}`,
+  77: `https://api.thegraph.com/subgraphs/name/${subgraphNames[77]}`,
+  42: `https://api.thegraph.com/subgraphs/name/${subgraphNames[42]}`,
 };
 
 export const mediators = {
@@ -153,9 +146,15 @@ export const ambs = {
     '0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59',
 };
 
+export const REVERSE_BRIDGE_ENABLED =
+  process.env.REACT_APP_ENABLE_REVERSED_BRIDGE === 'true';
+
 export const defaultTokensUrl = {
   100: 'https://tokens.honeyswap.org',
   1: 'https://tokens.uniswap.org',
   42: '',
   77: '',
 };
+
+export const GRAPH_HEALTH_ENDPOINT =
+  'https://api.thegraph.com/index-node/graphql';

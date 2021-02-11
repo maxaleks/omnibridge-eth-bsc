@@ -7,6 +7,7 @@ import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
 import { formatValue, isxDaiChain } from '../lib/helpers';
 import { ConfirmTransferModal } from './ConfirmTransferModal';
+import { isNativexDaiAddress } from './ReverseWarning';
 
 export const TransferButton = () => {
   const { ethersProvider } = useContext(Web3Context);
@@ -14,11 +15,13 @@ export const TransferButton = () => {
     receiver,
     fromAmount: amount,
     fromToken: token,
+    toToken,
     fromBalance: balance,
     tokenLimits,
     allowed,
   } = useContext(BridgeContext);
   const isxDai = token && token.chainId && isxDaiChain(token.chainId);
+  const isNativexDaiToken = isNativexDaiAddress(toToken);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const showError = msg => {
@@ -34,14 +37,14 @@ export const TransferButton = () => {
   const valid = () => {
     if (!ethersProvider) {
       showError('Please connect wallet');
-    } else if (amount.lt(tokenLimits.minPerTx)) {
+    } else if (tokenLimits && amount.lt(tokenLimits.minPerTx)) {
       showError(
         `Please specify amount more than ${formatValue(
           tokenLimits.minPerTx,
           token.decimals,
         )}`,
       );
-    } else if (amount.gt(tokenLimits.maxPerTx)) {
+    } else if (tokenLimits && amount.gt(tokenLimits.maxPerTx)) {
       showError(
         `Please specify amount less than ${formatValue(
           tokenLimits.maxPerTx,
@@ -52,6 +55,8 @@ export const TransferButton = () => {
       showError('Not enough balance');
     } else if (receiver && !utils.isAddress(receiver)) {
       showError(`Please specify a valid recipient address`);
+    } else if (isNativexDaiToken) {
+      showError(`Token is native ERC20 on xDai chain`);
     } else {
       return true;
     }
