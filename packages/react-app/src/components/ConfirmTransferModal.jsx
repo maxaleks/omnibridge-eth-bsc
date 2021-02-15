@@ -42,15 +42,29 @@ export const ConfirmTransferModal = ({ isOpen, onClose }) => {
   const toast = useToast();
   if (!fromToken || !toToken) return null;
   const isxDai = isxDaiChain(fromToken.chainId);
-  const isBridgedToken = fromToken.name.endsWith(isxDai ? 'xDai' : 'Mainnet');
+  let fromUnit = fromToken.symbol;
+  let toUnit = toToken.symbol;
+  if (isxDai) {
+    if (fromToken.name.endsWith('on xDai')) {
+      fromUnit += ' on xDai';
+    }
+    if (toToken.name.endsWith('on xDai on BSC')) {
+      toUnit += ' on xDai on BSC';
+    } else if (toToken.name.endsWith('on BSC')) {
+      toUnit += ' on BSC';
+    }
+  } else {
+    if (fromToken.name.endsWith('on xDai on BSC')) {
+      fromUnit += ' on xDai on BSC';
+    } else if (fromToken.name.endsWith('on BSC')) {
+      fromUnit += ' on BSC';
+    }
+    if (toToken.name.endsWith('on xDai')) {
+      toUnit += ' on xDai';
+    }
+  }
   const fromAmt = formatValue(fromAmount, fromToken.decimals);
-  const fromUnit = isBridgedToken
-    ? fromToken.symbol + (isxDai ? ' on xDai' : ' on Mainnet')
-    : fromToken.symbol;
   const toAmt = formatValue(toAmount, toToken.decimals);
-  const toUnit = !isBridgedToken
-    ? toToken.symbol + (!isxDai ? ' on xDai' : ' on Mainnet')
-    : toToken.symbol;
   const isERC20Dai = isERC20DaiAddress(fromToken);
 
   const showError = msg => {

@@ -21,9 +21,11 @@ export const getBridgeNetwork = chainId => {
       return 77;
     case 77:
       return 42;
+    case 56:
+      return 100;
     case 100:
     default:
-      return 1;
+      return 56;
   }
 };
 
@@ -35,6 +37,8 @@ export const isxDaiChain = chainId => {
       return false;
     case 77:
       return true;
+    case 56:
+      return false;
     case 100:
     default:
       return true;
@@ -87,9 +91,7 @@ export const uniqueTokens = list => {
 export const formatValue = (num, dec) => {
   const str = utils.formatUnits(num, dec);
   if (str.length > 50) {
-    const expStr = Number(str)
-      .toExponential()
-      .replace(/e\+?/, ' x 10^');
+    const expStr = Number(str).toExponential().replace(/e\+?/, ' x 10^');
     const split = expStr.split(' x 10^');
     const first = Number(split[0]).toLocaleString('en', {
       maximumFractionDigits: 4,

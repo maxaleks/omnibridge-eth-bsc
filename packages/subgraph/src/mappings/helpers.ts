@@ -172,7 +172,8 @@ export function updateHomeTokenInfo(
       token.homeChainId = 42;
       token.homeName = tokenObject.name;
     } else if (network == 'mainnet') {
-      token.homeChainId = 1;
+      // BSC
+      token.homeChainId = 56;
       token.homeName = tokenObject.name;
     }
 

@@ -5,6 +5,7 @@ import { BridgeContext } from '../contexts/BridgeContext';
 import { Web3Context } from '../contexts/Web3Context';
 import { HOME_NETWORK } from './constants';
 import { getBridgeNetwork, getGraphEndpoint } from './helpers';
+import { fetchTokenDetails } from './token';
 
 const pageSize = 1000;
 
@@ -23,8 +24,8 @@ const requestsQuery = gql`
       timestamp
       amount
       token
-      decimals
-      symbol
+      # decimals
+      # symbol
       message {
         txHash
         msgId
@@ -93,6 +94,21 @@ export const getRequests = async (user, chainId) => {
     if (!data || data.requests.length < pageSize) break;
     page += 1;
   }
+
+  const tokens = {};
+  requests.forEach(req => {
+    tokens[req.token] = {};
+  });
+  await Promise.all(
+    Object.keys(tokens).map(async address => {
+      const { symbol, decimals } = await fetchTokenDetails({
+        chainId,
+        address,
+      });
+      tokens[address] = { symbol, decimals };
+    }),
+  );
+  requests = requests.map(req => ({ ...req, ...tokens[req.token] }));
 
   return { requests };
 };

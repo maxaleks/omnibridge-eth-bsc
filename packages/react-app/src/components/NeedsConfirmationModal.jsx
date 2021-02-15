@@ -16,14 +16,19 @@ import ChangeNetworkImage from '../assets/change-network.png';
 import InfoImage from '../assets/info.svg';
 import { BridgeContext } from '../contexts/BridgeContext';
 import { HOME_NETWORK } from '../lib/constants';
-import { getBridgeNetwork, getNetworkName, isxDaiChain } from '../lib/helpers';
+import { getBridgeNetwork, getNetworkName } from '../lib/helpers';
 
 export const NeedsConfirmationModal = ({ setNeedsConfirmation }) => {
-  const { fromToken, toToken, setTxHash } = useContext(BridgeContext);
-  const isxDai = fromToken !== undefined && isxDaiChain(fromToken.chainId);
-  const toUnit =
-    toToken !== undefined && toToken.symbol + (isxDai ? ' on Mainnet' : '');
-
+  const { toToken, setTxHash } = useContext(BridgeContext);
+  let toUnit;
+  if (toToken !== undefined) {
+    toUnit = toToken.symbol;
+    if (toToken.name.endsWith('on xDai on BSC')) {
+      toUnit += ' on xDai on BSC';
+    } else if (toToken.name.endsWith('on BSC')) {
+      toUnit += ' on BSC';
+    }
+  }
   const [isOpen, setOpen] = useState(true);
   const onClose = () => {
     setNeedsConfirmation(false);

@@ -1,4 +1,4 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber, Contract, ethers } from 'ethers';
 
 import { REVERSE_BRIDGE_ENABLED } from './constants';
 import { getGasPrice } from './gasPrice';
@@ -12,21 +12,19 @@ import { getOverriddenToToken, isOverridden } from './overrides';
 import { getEthersProvider } from './providers';
 import { fetchTokenDetails } from './token';
 
-const getToName = (fromName, fromxDai) => {
-  if (REVERSE_BRIDGE_ENABLED) {
-    if (fromxDai) {
-      if (fromName.includes('on xDai')) return fromName.slice(0, -8);
-      return `${fromName} on Mainnet`;
-    }
-    if (fromName.includes('on Mainnet')) return fromName.slice(0, -11);
-    return `${fromName} on xDai`;
+async function getToName(isxDai, fromName, toChainId, toAddress) {
+  let toName;
+  if (toAddress === ethers.constants.AddressZero) {
+    toName = isxDai ? `${fromName} on BSC` : `${fromName} on xDai`;
+  } else {
+    const { name } = await fetchTokenDetails({
+      chainId: toChainId,
+      address: toAddress,
+    });
+    toName = name;
   }
-  if (fromxDai) {
-    if (fromName.includes('on xDai')) return fromName.slice(0, -8);
-    return fromName;
-  }
-  return `${fromName} on xDai`;
-};
+  return toName;
+}
 
 export const fetchToTokenAddress = async (
   isxDai,
@@ -71,7 +69,7 @@ export const fetchToTokenDetails = async ({
       isxDai ? fromChainId : toChainId,
       fromAddress,
     );
-    const toName = getToName(fromName, isxDai);
+    const toName = await getToName(isxDai, fromName, toChainId, toAddress);
     return {
       name: toName,
       chainId: toChainId,
@@ -105,8 +103,7 @@ export const fetchToTokenDetails = async ({
     );
 
     const toAddress = await toMediatorContract.bridgedTokenAddress(fromAddress);
-
-    const toName = isxDai ? `${fromName} on Mainnet` : `${fromName} on xDai`;
+    const toName = await getToName(isxDai, fromName, toChainId, toAddress);
     return {
       name: toName,
       chainId: toChainId,
@@ -116,8 +113,7 @@ export const fetchToTokenDetails = async ({
     };
   }
   const toAddress = await fromMediatorContract.nativeTokenAddress(fromAddress);
-
-  const toName = getToName(fromName, isxDai);
+  const toName = await getToName(isxDai, fromName, toChainId, toAddress);
   return {
     name: toName,
     chainId: toChainId,

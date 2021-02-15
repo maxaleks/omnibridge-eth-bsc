@@ -35,9 +35,9 @@ export function handleInitiateTransfer(event: TokensBridgingInitiated): void {
   request.txHash = txHash;
   request.timestamp = event.block.timestamp;
   request.token = event.params.token;
-  let tokenInfo = fetchTokenInfo(event.params.token);
-  request.decimals = tokenInfo.decimals;
-  request.symbol = tokenInfo.symbol;
+  // let tokenInfo = fetchTokenInfo(event.params.token);
+  // request.decimals = tokenInfo.decimals;
+  // request.symbol = tokenInfo.symbol;
   request.user = event.params.sender;
   request.amount = event.params.value;
   request.messageId = event.params.messageId;
@@ -48,42 +48,43 @@ export function handleInitiateTransfer(event: TokensBridgingInitiated): void {
 export function handleNewToken(event: NewTokenRegistered): void {
   log.debug('Parsing NewTokenRegistered', []);
 
-  if (
-    overrides.isSet(event.params.foreignToken) ||
-    overrides.isSet(event.params.homeToken)
-  ) {
-    return;
-  }
+  // if (
+  //   overrides.isSet(event.params.foreignToken) ||
+  //   overrides.isSet(event.params.homeToken)
+  // ) {
+  //   return;
+  // }
 
   let token = new Token(event.params.homeToken.toHexString());
   token.homeAddress = event.params.homeToken;
   token.foreignAddress = event.params.foreignToken;
 
-  let tokenObject = fetchTokenInfo(event.params.homeToken);
-  token.symbol = tokenObject.symbol;
-  token.decimals = tokenObject.decimals;
+  // let tokenObject = fetchTokenInfo(event.params.homeToken);
+  // token.symbol = tokenObject.symbol;
+  // token.decimals = tokenObject.decimals;
 
   let network = dataSource.network();
   if (network == 'xdai') {
     token.homeChainId = 100;
-    token.foreignChainId = 1;
-    token.homeName = tokenObject.name;
-    token.foreignName = tokenObject.name.slice(0, -8);
+    token.foreignChainId = 56;
+    // token.homeName = tokenObject.name;
+    // token.foreignName = tokenObject.name.slice(0, -8);
   } else if (network == 'poa-sokol') {
     token.homeChainId = 77;
     token.foreignChainId = 42;
-    token.homeName = tokenObject.name;
-    token.foreignName = tokenObject.name.slice(0, -8);
+    // token.homeName = tokenObject.name;
+    // token.foreignName = tokenObject.name.slice(0, -8);
   } else if (network == 'kovan') {
     token.homeChainId = 42;
     token.foreignChainId = 77;
-    token.homeName = tokenObject.name;
-    token.foreignName = tokenObject.name.slice(0, -11);
+    // token.homeName = tokenObject.name;
+    // token.foreignName = tokenObject.name.slice(0, -11);
   } else if (network == 'mainnet') {
-    token.homeChainId = 1;
+    // BSC
+    token.homeChainId = 56;
     token.foreignChainId = 100;
-    token.homeName = tokenObject.name;
-    token.foreignName = tokenObject.name.slice(0, -11);
+    // token.homeName = tokenObject.name;
+    // token.foreignName = tokenObject.name.slice(0, -7);
   }
 
   token.save();

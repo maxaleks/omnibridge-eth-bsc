@@ -23,7 +23,7 @@ export const ReverseWarning = ({ isSmallScreen }) => {
         <AlertIcon minWidth="20px" />
         <Text fontSize="small">
           The current version of OmniBridge does not support sending native
-          ERC20 tokens from the xDai chain to the Ethereum Mainnet.
+          ERC20 tokens from the xDai chain to the Binance Smart Chain.
         </Text>
       </Alert>
     </Flex>

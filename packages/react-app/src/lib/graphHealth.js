@@ -9,30 +9,8 @@ const HOME_SUBGRAPH = getSubgraphName(HOME_NETWORK);
 const FOREIGN_SUBGRAPH = getSubgraphName(FOREIGN_NETWORK);
 
 const healthQuery = gql`
-  query getHealthStatus($subgraphHome: String!, $subgraphForeign: String!) {
-    homeHealth: indexingStatusForCurrentVersion(subgraphName: $subgraphHome) {
-      synced
-      health
-      fatalError {
-        message
-        block {
-          number
-          hash
-        }
-        handler
-      }
-      chains {
-        chainHeadBlock {
-          number
-        }
-        latestBlock {
-          number
-        }
-      }
-    }
-    foreignHealth: indexingStatusForCurrentVersion(
-      subgraphName: $subgraphForeign
-    ) {
+  query getHealthStatus($subgraph: String!) {
+    indexingStatusForCurrentVersion(subgraphName: $subgraph) {
       synced
       health
       fatalError {
@@ -71,13 +49,15 @@ const failedStatus = {
 
 export const getHealthStatus = async () => {
   try {
-    const data = await request(GRAPH_HEALTH_ENDPOINT, healthQuery, {
-      subgraphHome: HOME_SUBGRAPH,
-      subgraphForeign: FOREIGN_SUBGRAPH,
-    });
+    const [homeData, foreignData] = await Promise.all([
+      request(GRAPH_HEALTH_ENDPOINT, healthQuery, { subgraph: HOME_SUBGRAPH }),
+      request('https://api.bscgraph.org/graphql', healthQuery, {
+        subgraph: FOREIGN_SUBGRAPH,
+      }),
+    ]);
     return {
-      homeHealth: extractStatus(data.homeHealth),
-      foreignHealth: extractStatus(data.foreignHealth),
+      homeHealth: extractStatus(homeData.indexingStatusForCurrentVersion),
+      foreignHealth: extractStatus(foreignData.indexingStatusForCurrentVersion),
     };
   } catch (graphHealthError) {
     logError({ graphHealthError });

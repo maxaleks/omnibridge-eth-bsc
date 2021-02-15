@@ -3,12 +3,13 @@ import { gql, request } from 'graphql-request';
 
 import { getGasPrice } from './gasPrice';
 import { getAMBAddress, getGraphEndpoint, logError } from './helpers';
+import { fetchTokenDetails } from './token';
 
 export const fetchConfirmations = async (chainId, ethersProvider) => {
   const abi = ['function requiredBlockConfirmations() view returns (uint256)'];
   const address = getAMBAddress(chainId);
   const ambContract = new Contract(address, abi, ethersProvider);
-  const requiredConfirmations = await ambContract
+  const requiredConfirmations = await ambContract.callStatic
     .requiredBlockConfirmations()
     .catch(contractError => logError({ contractError }));
   return parseInt(requiredConfirmations, 10);
@@ -71,8 +72,8 @@ const messagesTXQuery = gql`
       user
       amount
       token
-      decimals
-      symbol
+      # decimals
+      # symbol
       message {
         msgId
         msgData
@@ -87,15 +88,36 @@ export const getMessageFromTxHash = async (chainId, txHash) => {
     txHash,
   });
 
-  return data &&
+  if (
+    data &&
     data.requests &&
     data.requests.length > 0 &&
     data.requests[0].message
-    ? {
-        ...data.requests[0].message,
-        ...data.requests[0],
-      }
-    : null;
+  ) {
+    const { decimals, symbol } = await fetchTokenDetails({
+      chainId,
+      address: data.requests[0].token,
+    });
+    return {
+      ...data.requests[0].message,
+      ...data.requests[0],
+      decimals,
+      symbol,
+    };
+  }
+  return null;
+
+  // return data &&
+  //   data.requests &&
+  //   data.requests.length > 0 &&
+  //   data.requests[0].message
+  //   ? {
+  //       ...data.requests[0].message,
+  //       ...data.requests[0],
+  //       decimals,
+  //       symbol,
+  //     }
+  //   : null;
 };
 
 const messagesIDQuery = gql`

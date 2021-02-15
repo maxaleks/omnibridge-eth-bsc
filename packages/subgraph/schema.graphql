@@ -2,8 +2,8 @@ type UserRequest @entity {
   id: ID!
   user: Bytes
   token: Bytes
-  decimals: Int
-  symbol: String
+  # decimals: Int
+  # symbol: String
   amount: BigInt
   timestamp: BigInt!
   txHash: Bytes!
@@ -37,11 +37,11 @@ type Message @entity {
 type Token @entity {
   id: ID!
   homeAddress: Bytes!
-  homeName: String!
+  # homeName: String!
   homeChainId: Int!
-  decimals: Int!
-  symbol: String!
+  # decimals: Int!
+  # symbol: String!
   foreignAddress: Bytes
-  foreignName: String
+  # foreignName: String
   foreignChainId: Int
 }
