@@ -102,6 +102,9 @@ export const getGasPrice = chainId => {
   if (isxDaiChain(chainId)) {
     return utils.parseUnits('1', 'gwei').toHexString();
   }
+  if (chainId === 56) {
+    return utils.parseUnits('10', 'gwei').toHexString();
+  }
   return foreignGasStore.gasPriceInHex();
 };
 
