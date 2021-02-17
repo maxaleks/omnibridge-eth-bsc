@@ -1,4 +1,4 @@
-import { Alert, AlertIcon, Flex, Text } from '@chakra-ui/react';
+import { Alert, AlertIcon, Flex, Link, Text } from '@chakra-ui/react';
 import React from 'react';
 
 import { isxDaiChain } from '../lib/helpers';
@@ -23,14 +23,30 @@ export const isERC20DaiAddress = token => {
   );
 };
 
+const TokenLink = () => (
+  <Link
+    href="https://blockscout.com/poa/xdai/tokens/0xFc8B2690F66B46fEC8B3ceeb95fF4Ac35a0054BC/token-transfers"
+    color="blue.500"
+    isExternal
+  >
+    Token Address
+  </Link>
+);
+
+const XDaiBridgeLink = () => (
+  <Link href="https://bridge.xdaichain.com/" color="blue.500" isExternal>
+    xDai Ethereum Bridge
+  </Link>
+);
+
 export const DaiWarning = () => {
   return (
     <Flex align="flex-middle" direction="column">
       <Alert status="warning" borderRadius={5} mb={5}>
         <AlertIcon minWidth="20px" />
         <Text fontSize="small">
-          Bridges DAI on Binance Smart Chain to DAI on xDai, DOES NOT mint
-          native xDai.
+          Bridging to the DAI Token on xDai (<TokenLink />
+          ). To mint native xDai coins, use the <XDaiBridgeLink />.
         </Text>
       </Alert>
     </Flex>
