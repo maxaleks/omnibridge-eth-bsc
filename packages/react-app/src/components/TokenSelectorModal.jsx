@@ -41,7 +41,6 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
 
   const setDefaultTokenList = useCallback(
     async (chainId, customTokens) => {
-      setLoading(true);
       try {
         const baseTokenList = await fetchTokenList(chainId);
         const customTokenList = uniqueTokens(
@@ -69,6 +68,14 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
           return -1;
         });
         setTokenList(sortedTokenList);
+        const tokenListToBeCached = sortedTokenList.map(token => ({
+          ...token,
+          balance: null,
+        }));
+        window.localStorage.setItem(
+          `tokens-${chainId}`,
+          JSON.stringify(tokenListToBeCached),
+        );
       } catch (fetchTokensError) {
         logError({ fetchTokensError });
       }
@@ -115,6 +122,17 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
 
     if (!isOpen) return;
     if (providerChainId) {
+      setLoading(true);
+      const cachedTokenList = window.localStorage.getItem(
+        `tokens-${providerChainId}`,
+      );
+      if (cachedTokenList && cachedTokenList.length > 0) {
+        const parsed = JSON.parse(cachedTokenList);
+        setTimeout(() => {
+          setTokenList(parsed);
+          setLoading(false);
+        }, 500);
+      }
       setDefaultTokenList(providerChainId, localTokenList);
     }
   }, [isOpen, providerChainId, setDefaultTokenList]);
@@ -210,9 +228,13 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
                         {token.symbol}
                       </Text>
                     </Flex>
-                    <Text color="grey" fontWeight="normal">
-                      {formatValue(token.balance, token.decimals)}
-                    </Text>
+                    {token.balance ? (
+                      <Text color="grey" fontWeight="normal">
+                        {formatValue(token.balance, token.decimals)}
+                      </Text>
+                    ) : (
+                      <Spinner size="sm" color="grey" />
+                    )}
                   </Flex>
                 </Button>
               ))}

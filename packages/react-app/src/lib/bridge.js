@@ -10,20 +10,23 @@ import {
 } from './helpers';
 import { getOverriddenToToken, isOverridden } from './overrides';
 import { getEthersProvider } from './providers';
-import { fetchTokenDetails } from './token';
+import { fetchTokenDetails, fetchTokenName } from './token';
 
 async function getToName(isxDai, fromName, toChainId, toAddress) {
-  let toName;
   if (toAddress === ethers.constants.AddressZero) {
-    toName = isxDai ? `${fromName} on BSC` : `${fromName} on xDai`;
-  } else {
-    const { name } = await fetchTokenDetails({
-      chainId: toChainId,
-      address: toAddress,
-    });
-    toName = name;
+    return isxDai ? `${fromName} on BSC` : `${fromName} on xDai`;
   }
-  return toName;
+  const cachedTokenList = window.localStorage.getItem(`tokens-${toChainId}`);
+  if (cachedTokenList && cachedTokenList.length > 0) {
+    const parsed = JSON.parse(cachedTokenList);
+    const token = parsed.find(
+      item => item.address.toLowerCase() === toAddress.toLowerCase(),
+    );
+    if (token && token.name) {
+      return token.name;
+    }
+  }
+  return fetchTokenName({ chainId: toChainId, address: toAddress });
 }
 
 export const fetchToTokenAddress = async (
@@ -101,7 +104,6 @@ export const fetchToTokenDetails = async ({
       abi,
       toEthersProvider,
     );
-
     const toAddress = await toMediatorContract.bridgedTokenAddress(fromAddress);
     const toName = await getToName(isxDai, fromName, toChainId, toAddress);
     return {
