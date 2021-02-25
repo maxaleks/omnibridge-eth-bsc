@@ -76,11 +76,22 @@ export const fetchTokensFromSubgraph = async chainId => {
     foreignData && foreignData.tokens ? foreignData.tokens : [];
   // return homeTokens.concat(foreignTokens);
 
+  const cachedTokenList = window.localStorage.getItem(`tokens-${chainId}`);
+  let cachedTokens = [];
+  if (cachedTokenList && cachedTokenList.length > 0) {
+    cachedTokens = JSON.parse(cachedTokenList);
+  }
+
   let tokens = homeTokens.concat(foreignTokens);
+  tokens = tokens.filter(token => {
+    return !cachedTokens.find(
+      cached => cached.address.toLowerCase() === token.address.toLowerCase(),
+    );
+  });
   tokens = await Promise.all(
     tokens.map(async ({ address, chainId: tokenChainId }) =>
       fetchTokenDetails({ address, chainId: tokenChainId }),
     ),
   );
-  return tokens;
+  return tokens.concat(cachedTokens);
 };

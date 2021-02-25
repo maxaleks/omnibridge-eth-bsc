@@ -48,40 +48,45 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
             customTokens.filter(token => token.chainId === chainId),
           ),
         );
-        const tokenListWithBalance = await Promise.all(
-          customTokenList.map(async token => ({
-            ...token,
-            balance: await fetchTokenBalanceWithProvider(
-              ethersProvider,
-              token,
-              account,
-            ),
-          })),
+        // const tokenListWithBalance = await Promise.all(
+        //   customTokenList.map(async token => ({
+        //     ...token,
+        //     balance: await fetchTokenBalanceWithProvider(
+        //       ethersProvider,
+        //       token,
+        //       account,
+        //     ),
+        //   })),
+        // );
+        // const sortedTokenList = tokenListWithBalance.sort(function checkBalance(
+        //   { balance: balanceA },
+        //   { balance: balanceB },
+        // ) {
+        //   if (balanceB.sub(balanceA).gt(0)) {
+        //     return 1;
+        //   }
+        //   return -1;
+        // });
+        const sortedTokenList = customTokenList.sort((a, b) =>
+          a.symbol.toUpperCase() < b.symbol.toUpperCase() ? -1 : 1,
         );
-        const sortedTokenList = tokenListWithBalance.sort(function checkBalance(
-          { balance: balanceA },
-          { balance: balanceB },
-        ) {
-          if (balanceB.sub(balanceA).gt(0)) {
-            return 1;
-          }
-          return -1;
-        });
         setTokenList(sortedTokenList);
-        const tokenListToBeCached = sortedTokenList.map(token => ({
-          ...token,
-          balance: null,
-        }));
+        // const tokenListToBeCached = sortedTokenList.map(token => ({
+        //   ...token,
+        //   balance: null,
+        // }));
         window.localStorage.setItem(
           `tokens-${chainId}`,
-          JSON.stringify(tokenListToBeCached),
+          JSON.stringify(sortedTokenList),
         );
       } catch (fetchTokensError) {
         logError({ fetchTokensError });
       }
       setLoading(false);
     },
-    [account, ethersProvider],
+    [
+      /* account, ethersProvider */
+    ],
   );
 
   const [filteredTokenList, setFilteredTokenList] = useState([]);
@@ -228,13 +233,16 @@ export const TokenSelectorModal = ({ isOpen, onClose, onCustom }) => {
                         {token.symbol}
                       </Text>
                     </Flex>
-                    {token.balance ? (
+                    <Text color="grey" fontWeight="normal">
+                      {token.name}
+                    </Text>
+                    {/* {token.balance ? (
                       <Text color="grey" fontWeight="normal">
                         {formatValue(token.balance, token.decimals)}
                       </Text>
                     ) : (
                       <Spinner size="sm" color="grey" />
-                    )}
+                    )} */}
                   </Flex>
                 </Button>
               ))}
