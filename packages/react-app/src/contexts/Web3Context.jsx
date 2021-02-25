@@ -57,11 +57,9 @@ export const Web3Provider = ({ children }) => {
         const provider = new ethers.providers.Web3Provider(
           web3Provider.currentProvider,
         );
-
-        const providerNetwork = await provider.getNetwork();
         setWeb3State({
           ethersProvider: provider,
-          providerChainId: providerNetwork.chainId,
+          providerChainId: Number(prov.chainId),
         });
         if (updateAccount) {
           const signer = provider.getSigner();
