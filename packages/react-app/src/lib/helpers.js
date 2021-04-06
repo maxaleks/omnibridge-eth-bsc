@@ -1,73 +1,43 @@
 import { BigNumber, utils } from 'ethers';
-
 import {
-  ambs,
   chainUrls,
   defaultTokens,
   defaultTokensUrl,
-  graphEndpoints,
-  mediators,
+  LOCAL_STORAGE_KEYS,
+  networkCurrencies,
   networkLabels,
   networkNames,
-  subgraphNames,
-} from './constants';
+} from 'lib/constants';
+import {
+  BSC_XDAI_BRIDGE,
+  ETH_XDAI_BRIDGE,
+  KOVAN_SOKOL_BRIDGE,
+  networks,
+} from 'lib/networks';
+
 import { getOverriddenMediator, isOverridden } from './overrides';
 
-export const getBridgeNetwork = chainId => {
-  switch (chainId) {
-    case 1:
-      return 100;
-    case 42:
-      return 77;
-    case 77:
-      return 42;
-    case 100:
-    default:
-      return 1;
-  }
-};
-
-export const isxDaiChain = chainId => {
-  switch (chainId) {
-    case 1:
-      return false;
-    case 42:
-      return false;
-    case 77:
-      return true;
-    case 100:
-    default:
-      return true;
-  }
-};
-
 export const getDefaultToken = chainId =>
-  defaultTokens[chainId] || defaultTokens[100];
+  defaultTokens[chainId] || defaultTokens[1];
 
-export const getMediatorAddressWithOverride = (tokenAddress, chainId) => {
-  if (isOverridden(tokenAddress)) {
-    return getOverriddenMediator(tokenAddress, chainId);
-  }
-  return getMediatorAddress(chainId);
-};
+export const getWalletProviderName = provider =>
+  provider?.connection?.url || null;
 
-export const getMediatorAddress = chainId =>
-  mediators[chainId].toLowerCase() || mediators[100].toLowerCase();
+export const getNetworkName = chainId =>
+  networkNames[chainId] || 'Unknown Network';
 
-export const getNetworkName = chainId => networkNames[chainId] || 'Unknown';
 export const getNetworkLabel = chainId => networkLabels[chainId] || 'Unknown';
-export const getAMBAddress = chainId => ambs[chainId] || ambs[100];
-export const getGraphEndpoint = chainId =>
-  graphEndpoints[chainId] || graphEndpoints[100];
-export const getSubgraphName = chainId =>
-  subgraphNames[chainId] || subgraphNames[100];
-export const getRPCUrl = chainId => (chainUrls[chainId] || chainUrls[100]).rpc;
+
+export const getNetworkCurrency = chainId =>
+  networkCurrencies[chainId] || { name: 'Unknown', symbol: 'Unknown' };
+
+export const getRPCUrl = chainId => (chainUrls[chainId] || chainUrls[1]).rpc;
+
 export const getExplorerUrl = chainId =>
-  (chainUrls[chainId] || chainUrls[100]).explorer;
+  (chainUrls[chainId] || chainUrls[1]).explorer;
+
 export const getTokenListUrl = chainId =>
-  defaultTokensUrl[chainId] || defaultTokensUrl[100];
-export const getMonitorUrl = (chainId, hash) =>
-  `${(chainUrls[chainId] || chainUrls[100]).monitor}/${chainId}/${hash}`;
+  defaultTokensUrl[chainId] || defaultTokensUrl[1];
 
 export const uniqueTokens = list => {
   const seen = {};
@@ -87,9 +57,7 @@ export const uniqueTokens = list => {
 export const formatValue = (num, dec) => {
   const str = utils.formatUnits(num, dec);
   if (str.length > 50) {
-    const expStr = Number(str)
-      .toExponential()
-      .replace(/e\+?/, ' x 10^');
+    const expStr = Number(str).toExponential().replace(/e\+?/, ' x 10^');
     const split = expStr.split(' x 10^');
     const first = Number(split[0]).toLocaleString('en', {
       maximumFractionDigits: 4,
@@ -130,6 +98,18 @@ export const uriToHttp = uri => {
   }
 };
 
+export const fetchQueryParams = search => {
+  if (!search || !search.trim().length) return null;
+  return search
+    .replace('?', '')
+    .split(/&/g)
+    .reduce((acc, keyValuePair) => {
+      const [key, value] = keyValuePair.split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+};
+
 export const getAccountString = account => {
   const len = account.length;
   return `${account.substr(0, 6)}...${account.substr(
@@ -148,4 +128,51 @@ export const logDebug = error => {
     // eslint-disable-next-line no-console
     console.debug(error);
   }
+};
+
+const {
+  XDAI_RPC_URL,
+  MAINNET_RPC_URL,
+  BSC_RPC_URL,
+  KOVAN_RPC_URL,
+  SOKOL_RPC_URL,
+} = LOCAL_STORAGE_KEYS;
+
+export const getRPCKeys = bridgeDirection => {
+  switch (bridgeDirection) {
+    case ETH_XDAI_BRIDGE:
+      return {
+        homeRPCKey: XDAI_RPC_URL,
+        foreignRPCKey: MAINNET_RPC_URL,
+      };
+    case BSC_XDAI_BRIDGE:
+      return {
+        homeRPCKey: XDAI_RPC_URL,
+        foreignRPCKey: BSC_RPC_URL,
+      };
+    case KOVAN_SOKOL_BRIDGE:
+    default:
+      return {
+        homeRPCKey: SOKOL_RPC_URL,
+        foreignRPCKey: KOVAN_RPC_URL,
+      };
+  }
+};
+
+export const getMediatorAddressWithoutOverride = (bridgeDirection, chainId) => {
+  if (!bridgeDirection || !chainId) return null;
+  const { homeChainId, homeMediatorAddress, foreignMediatorAddress } = networks[
+    bridgeDirection
+  ];
+  return homeChainId === chainId
+    ? homeMediatorAddress.toLowerCase()
+    : foreignMediatorAddress.toLowerCase();
+};
+
+export const getMediatorAddress = (bridgeDirection, token) => {
+  if (!token || !token.chainId || !token.address) return null;
+  if (isOverridden(bridgeDirection, token)) {
+    return getOverriddenMediator(bridgeDirection, token);
+  }
+  return getMediatorAddressWithoutOverride(bridgeDirection, token.chainId);
 };

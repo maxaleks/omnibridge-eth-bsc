@@ -2,6 +2,6 @@
   "projects": {
     "xdai": "xdai-omnibridge",
     "sokol": "sokol-omnibridge",
-    "staging": "omnibridge-staging"
+    "bsc-xdai": "bsc-to-xdai-omnibridge"
   }
 }

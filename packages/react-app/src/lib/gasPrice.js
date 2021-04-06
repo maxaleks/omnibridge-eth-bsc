@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 import { GasPriceOracle } from 'gas-price-oracle';
-
-import { isxDaiChain, logError } from './helpers';
+import { XDAI_CHAIN_IDS } from 'lib/constants';
+import { logError } from 'lib/helpers';
 
 const gasPriceOracle = new GasPriceOracle();
 
@@ -99,8 +99,11 @@ class GasPriceStore {
 const foreignGasStore = new GasPriceStore();
 
 export const getGasPrice = chainId => {
-  if (isxDaiChain(chainId)) {
+  if (XDAI_CHAIN_IDS.indexOf(chainId) !== -1) {
     return utils.parseUnits('1', 'gwei').toHexString();
+  }
+  if (chainId === 56) {
+    return utils.parseUnits('10', 'gwei').toHexString();
   }
   return foreignGasStore.gasPriceInHex();
 };

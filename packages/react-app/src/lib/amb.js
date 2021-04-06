@@ -1,24 +1,21 @@
 import { Contract, utils } from 'ethers';
 import { gql, request } from 'graphql-request';
+import { logError } from 'lib/helpers';
 
-import { getGasPrice } from './gasPrice';
-import { getAMBAddress, getGraphEndpoint, logError } from './helpers';
-
-export const fetchConfirmations = async (chainId, ethersProvider) => {
+export const fetchConfirmations = async (address, ethersProvider) => {
   const abi = ['function requiredBlockConfirmations() view returns (uint256)'];
-  const address = getAMBAddress(chainId);
   const ambContract = new Contract(address, abi, ethersProvider);
   const requiredConfirmations = await ambContract
     .requiredBlockConfirmations()
-    .catch(contractError => logError({ contractError }));
+    .catch(blockConfirmationsError => logError({ blockConfirmationsError }));
   return parseInt(requiredConfirmations, 10);
 };
 
-export function strip0x(input) {
+function strip0x(input) {
   return input.replace(/^0x/, '');
 }
 
-export function signatureToVRS(rawSignature) {
+function signatureToVRS(rawSignature) {
   const signature = strip0x(rawSignature);
   const v = signature.substr(64 * 2);
   const r = signature.substr(0, 32 * 2);
@@ -26,7 +23,7 @@ export function signatureToVRS(rawSignature) {
   return { v, r, s };
 }
 
-export function packSignatures(array) {
+function packSignatures(array) {
   const length = strip0x(utils.hexValue(array.length));
   const msgLength = length.length === 1 ? `0${length}` : length;
   let v = '';
@@ -40,30 +37,16 @@ export function packSignatures(array) {
   return `0x${msgLength}${v}${r}${s}`;
 }
 
-export const executeSignatures = async (ethersProvider, chainId, message) => {
+export const executeSignatures = async (ethersProvider, address, message) => {
   const abi = [
     'function executeSignatures(bytes messageData, bytes signatures) external',
   ];
   const signatures = packSignatures(
     message.signatures.map(s => signatureToVRS(s)),
   );
-  const address = getAMBAddress(chainId);
   const ambContract = new Contract(address, abi, ethersProvider.getSigner());
-  const gasPrice = getGasPrice(chainId);
-  return ambContract.executeSignatures(message.msgData, signatures, {
-    gasPrice,
-  });
+  return ambContract.executeSignatures(message.msgData, signatures);
 };
-
-// const messagesTXQuery = gql`
-//   query getMessage($txHash: String!) {
-//     messages(where: { txHash_contains: $txHash }, first: 1) {
-//       msgId
-//       msgData
-//       signatures
-//     }
-//   }
-// `;
 
 const messagesTXQuery = gql`
   query getRequests($txHash: String!) {
@@ -82,8 +65,8 @@ const messagesTXQuery = gql`
   }
 `;
 
-export const getMessageFromTxHash = async (chainId, txHash) => {
-  const data = await request(getGraphEndpoint(chainId), messagesTXQuery, {
+export const getMessageFromTxHash = async (graphEndpoint, txHash) => {
+  const data = await request(graphEndpoint, messagesTXQuery, {
     txHash,
   });
 
@@ -98,26 +81,6 @@ export const getMessageFromTxHash = async (chainId, txHash) => {
     : null;
 };
 
-const messagesIDQuery = gql`
-  query getMessage($msgId: String!) {
-    messages(where: { msgId_contains: $msgId }, first: 1) {
-      msgId
-      msgData
-      signatures
-    }
-  }
-`;
-
-export const getMessageFromMessageID = async (chainId, msgId) => {
-  const data = await request(getGraphEndpoint(chainId), messagesIDQuery, {
-    msgId,
-  });
-
-  return data && data.messages && data.messages.length > 0
-    ? { ...data.messages[0], messageId: msgId }
-    : null;
-};
-
 const executionsQuery = gql`
   query getExecution($messageId: String!) {
     executions(where: { messageId_contains: $messageId }, first: 1) {
@@ -127,8 +90,8 @@ const executionsQuery = gql`
   }
 `;
 
-export const getMessageStatus = async (chainId, messageId) => {
-  const data = await request(getGraphEndpoint(chainId), executionsQuery, {
+export const getMessageStatus = async (graphEndpoint, messageId) => {
+  const data = await request(graphEndpoint, executionsQuery, {
     messageId,
   });
 

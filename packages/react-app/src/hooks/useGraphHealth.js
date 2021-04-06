@@ -1,13 +1,11 @@
 import { useToast } from '@chakra-ui/react';
-import { useContext, useEffect, useRef, useState } from 'react';
-
-import { Web3Context } from '../contexts/Web3Context';
-import { HOME_NETWORK } from '../lib/constants';
-import { getHealthStatus } from '../lib/graphHealth';
-import { getBridgeNetwork, logDebug, logError } from '../lib/helpers';
-import { getEthersProvider } from '../lib/providers';
-
-const FOREIGN_NETWORK = getBridgeNetwork(HOME_NETWORK);
+import { useWeb3Context } from 'contexts/Web3Context';
+import { useBridgeDirection } from 'hooks/useBridgeDirection';
+import { getHealthStatus } from 'lib/graphHealth';
+import { logDebug, logError } from 'lib/helpers';
+import { getEthersProvider } from 'lib/providers';
+import { useEffect, useRef, useState } from 'react';
+import { defer } from 'rxjs';
 
 const {
   REACT_APP_GRAPH_HEALTH_UPDATE_INTERVAL,
@@ -27,9 +25,10 @@ const THRESHOLD_BLOCKS =
   DEFAULT_GRAPH_HEALTH_THRESHOLD_BLOCKS;
 
 export const useGraphHealth = (description, onlyHome = false) => {
-  const { providerChainId } = useContext(Web3Context);
+  const { bridgeDirection, homeChainId, foreignChainId } = useBridgeDirection();
+  const { providerChainId } = useWeb3Context();
 
-  const isHome = providerChainId === HOME_NETWORK;
+  const isHome = providerChainId === homeChainId;
 
   const [homeHealthy, setHomeHealthy] = useState(true);
 
@@ -53,9 +52,9 @@ export const useGraphHealth = (description, onlyHome = false) => {
           homeBlockNumber,
           foreignBlockNumber,
         ] = await Promise.all([
-          getHealthStatus(),
-          getEthersProvider(HOME_NETWORK).getBlockNumber(),
-          getEthersProvider(FOREIGN_NETWORK).getBlockNumber(),
+          getHealthStatus(bridgeDirection),
+          getEthersProvider(homeChainId).getBlockNumber(),
+          getEthersProvider(foreignChainId).getBlockNumber(),
         ]);
         logDebug({
           homeHealth,
@@ -71,6 +70,8 @@ export const useGraphHealth = (description, onlyHome = false) => {
             !homeHealth.isFailed &&
             homeHealth.isSynced &&
             Math.abs(homeHealth.latestBlockNumber - homeBlockNumber) <
+              THRESHOLD_BLOCKS &&
+            Math.abs(homeHealth.chainHeadBlockNumber - homeBlockNumber) <
               THRESHOLD_BLOCKS,
         );
 
@@ -80,6 +81,8 @@ export const useGraphHealth = (description, onlyHome = false) => {
             !foreignHealth.isFailed &&
             foreignHealth.isSynced &&
             Math.abs(foreignHealth.latestBlockNumber - foreignBlockNumber) <
+              THRESHOLD_BLOCKS &&
+            Math.abs(foreignHealth.chainHeadBlockNumber - foreignBlockNumber) <
               THRESHOLD_BLOCKS,
         );
 
@@ -95,10 +98,13 @@ export const useGraphHealth = (description, onlyHome = false) => {
     // unsubscribe from previous polls
     unsubscribe();
 
-    load();
+    const deferral = defer(() => load()).subscribe();
     // unsubscribe when unmount component
-    return unsubscribe;
-  }, []);
+    return () => {
+      unsubscribe();
+      deferral.unsubscribe();
+    };
+  }, [bridgeDirection, foreignChainId, homeChainId]);
 
   const toast = useToast();
   const toastIdRef = useRef();

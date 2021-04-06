@@ -1,82 +1,90 @@
 import { BigNumber, Contract } from 'ethers';
-
-import { REVERSE_BRIDGE_ENABLED } from './constants';
-import { getGasPrice } from './gasPrice';
+import { ADDRESS_ZERO } from 'lib/constants';
 import {
-  getBridgeNetwork,
-  getMediatorAddress,
-  isxDaiChain,
+  getMediatorAddressWithoutOverride,
+  getNetworkLabel,
   logError,
-} from './helpers';
-import { getOverriddenToToken, isOverridden } from './overrides';
-import { getEthersProvider } from './providers';
-import { fetchTokenDetails } from './token';
+} from 'lib/helpers';
+import { getOverriddenToToken, isOverridden } from 'lib/overrides';
+import { getEthersProvider } from 'lib/providers';
+import { fetchTokenDetails, fetchTokenName } from 'lib/token';
 
-const getToName = (fromName, fromxDai) => {
-  if (REVERSE_BRIDGE_ENABLED) {
-    if (fromxDai) {
-      if (fromName.includes('on xDai')) return fromName.slice(0, -8);
-      return `${fromName} on Mainnet`;
-    }
-    if (fromName.includes('on Mainnet')) return fromName.slice(0, -11);
-    return `${fromName} on xDai`;
+import { networks } from './networks';
+
+const getToName = async (fromToken, toChainId, toAddress) => {
+  const { name } = fromToken;
+  if (toAddress === ADDRESS_ZERO) {
+    const fromName = name || (await fetchTokenName(fromToken));
+    return `${fromName} on ${getNetworkLabel(toChainId)}`;
   }
-  if (fromxDai) {
-    if (fromName.includes('on xDai')) return fromName.slice(0, -8);
-    return fromName;
-  }
-  return `${fromName} on xDai`;
+  return fetchTokenName({ chainId: toChainId, address: toAddress });
 };
 
-export const fetchToTokenAddress = async (
-  isxDai,
-  xDaiChainId,
+const fetchToTokenAddress = async (
+  isHome,
+  homeChainId,
   tokenAddress,
+  homeMediatorAddress,
 ) => {
-  const ethersProvider = getEthersProvider(xDaiChainId);
-  const mediatorAddress = getMediatorAddress(xDaiChainId);
+  const ethersProvider = getEthersProvider(homeChainId);
   const abi = [
     'function foreignTokenAddress(address) view returns (address)',
     'function homeTokenAddress(address) view returns (address)',
   ];
-  const mediatorContract = new Contract(mediatorAddress, abi, ethersProvider);
+  const mediatorContract = new Contract(
+    homeMediatorAddress,
+    abi,
+    ethersProvider,
+  );
 
-  if (isxDai) {
+  if (isHome) {
     return mediatorContract.foreignTokenAddress(tokenAddress);
   }
   return mediatorContract.homeTokenAddress(tokenAddress);
 };
 
-export const fetchToTokenDetails = async ({
-  name: fromName,
-  chainId: fromChainId,
-  address: fromAddress,
-}) => {
-  const toChainId = getBridgeNetwork(fromChainId);
-
-  if (isOverridden(fromAddress)) {
-    return fetchTokenDetails({
-      address: getOverriddenToToken(fromAddress, fromChainId),
+const fetchToTokenDetails = async (bridgeDirection, fromToken, toChainId) => {
+  const { chainId: fromChainId, address: fromAddress } = fromToken;
+  if (
+    isOverridden(bridgeDirection, {
+      address: fromAddress,
+      chainId: fromChainId,
+    })
+  ) {
+    return fetchTokenDetails(bridgeDirection, {
+      address: getOverriddenToToken(bridgeDirection, {
+        address: fromAddress,
+        chainId: fromChainId,
+      }),
       chainId: toChainId,
     });
   }
 
-  const isxDai = isxDaiChain(fromChainId);
-  const fromMediatorAddress = getMediatorAddress(fromChainId);
-  const toMediatorAddress = getMediatorAddress(toChainId);
+  const { homeChainId, enableReversedBridge } = networks[bridgeDirection];
 
-  if (!REVERSE_BRIDGE_ENABLED) {
+  const isHome = homeChainId === fromChainId;
+  const fromMediatorAddress = getMediatorAddressWithoutOverride(
+    bridgeDirection,
+    fromChainId,
+  );
+  const toMediatorAddress = getMediatorAddressWithoutOverride(
+    bridgeDirection,
+    toChainId,
+  );
+
+  if (!enableReversedBridge) {
     const toAddress = await fetchToTokenAddress(
-      isxDai,
-      isxDai ? fromChainId : toChainId,
+      isHome,
+      homeChainId,
       fromAddress,
+      isHome ? fromMediatorAddress : toMediatorAddress,
     );
-    const toName = getToName(fromName, isxDai);
+    const toName = await getToName(fromToken, toChainId, toAddress);
     return {
       name: toName,
       chainId: toChainId,
       address: toAddress,
-      mode: isxDai ? 'erc20' : 'erc677',
+      mode: isHome ? 'erc20' : 'erc677',
       mediator: toMediatorAddress,
     };
   }
@@ -106,7 +114,7 @@ export const fetchToTokenDetails = async ({
 
     const toAddress = await toMediatorContract.bridgedTokenAddress(fromAddress);
 
-    const toName = isxDai ? `${fromName} on Mainnet` : `${fromName} on xDai`;
+    const toName = await getToName(fromToken, toChainId, toAddress);
     return {
       name: toName,
       chainId: toChainId,
@@ -117,7 +125,7 @@ export const fetchToTokenDetails = async ({
   }
   const toAddress = await fromMediatorContract.nativeTokenAddress(fromAddress);
 
-  const toName = getToName(fromName, isxDai);
+  const toName = await getToName(fromToken, toChainId, toAddress);
   return {
     name: toName,
     chainId: toChainId,
@@ -128,30 +136,28 @@ export const fetchToTokenDetails = async ({
 };
 
 export const fetchToAmount = async (
-  isRewardAddress,
+  bridgeDirection,
   feeType,
   fromToken,
   toToken,
   fromAmount,
 ) => {
-  if (fromAmount <= 0 || !fromToken || !toToken) return BigNumber.from(0);
-  if (isRewardAddress) {
+  if (fromAmount.lte(0) || !fromToken || !toToken) return BigNumber.from(0);
+  const { homeChainId, homeMediatorAddress } = networks[bridgeDirection];
+
+  const isHome = homeChainId === toToken.chainId;
+  const tokenAddress = isHome ? toToken.address : fromToken.address;
+  const mediatorAddress = isHome ? toToken.mediator : fromToken.mediator;
+  if (mediatorAddress !== homeMediatorAddress) {
     return fromAmount;
   }
-  const isxDai = isxDaiChain(toToken.chainId);
-  const xDaiChainId = isxDai ? toToken.chainId : fromToken.chainId;
-  const tokenAddress = isxDai ? toToken.address : fromToken.address;
-  const mediatorAddress = isxDai ? toToken.mediator : fromToken.mediator;
-  if (mediatorAddress !== getMediatorAddress(xDaiChainId)) {
-    return fromAmount;
-  }
-  const ethersProvider = getEthersProvider(xDaiChainId);
-  const abi = [
-    'function calculateFee(bytes32, address, uint256) view returns (uint256)',
-  ];
-  const mediatorContract = new Contract(mediatorAddress, abi, ethersProvider);
 
   try {
+    const ethersProvider = getEthersProvider(homeChainId);
+    const abi = [
+      'function calculateFee(bytes32, address, uint256) view returns (uint256)',
+    ];
+    const mediatorContract = new Contract(mediatorAddress, abi, ethersProvider);
     const fee = await mediatorContract.calculateFee(
       feeType,
       tokenAddress,
@@ -164,27 +170,69 @@ export const fetchToAmount = async (
   }
 };
 
-export const fetchToToken = async fromToken => {
+export const fetchToToken = async (bridgeDirection, fromToken, toChainId) => {
   const toToken = await fetchToTokenDetails(
+    bridgeDirection,
     fromToken,
-  ).catch(tokenDetailsError => logError({ tokenDetailsError }));
+    toChainId,
+  );
+
+  return toToken;
+};
+
+const getDefaultTokenLimits = async (
+  decimals,
+  mediatorContract,
+  toMediatorContract,
+) => {
+  let [minPerTx, maxPerTx, dailyLimit] = await Promise.all([
+    mediatorContract.minPerTx(ADDRESS_ZERO),
+    toMediatorContract.executionMaxPerTx(ADDRESS_ZERO),
+    mediatorContract.executionDailyLimit(ADDRESS_ZERO),
+  ]);
+
+  if (decimals < 18) {
+    const factor = BigNumber.from(10).pow(18 - decimals);
+
+    minPerTx = minPerTx.div(factor);
+    maxPerTx = maxPerTx.div(factor);
+    dailyLimit = dailyLimit.div(factor);
+
+    if (minPerTx.eq(0)) {
+      minPerTx = BigNumber.from(1);
+      if (maxPerTx.lte(minPerTx)) {
+        maxPerTx = BigNumber.from(100);
+        if (dailyLimit.lte(maxPerTx)) {
+          dailyLimit = BigNumber.from(10000);
+        }
+      }
+    }
+  } else {
+    const factor = BigNumber.from(10).pow(decimals - 18);
+
+    minPerTx = minPerTx.mul(factor);
+    maxPerTx = maxPerTx.mul(factor);
+    dailyLimit = dailyLimit.mul(factor);
+  }
 
   return {
-    symbol: fromToken.symbol,
-    decimals: fromToken.decimals,
-    logoURI: '',
-    ...toToken,
+    minPerTx,
+    maxPerTx,
+    dailyLimit,
   };
 };
 
 export const fetchTokenLimits = async (
+  bridgeDirection,
   ethersProvider,
   token,
   toToken,
   currentDay,
 ) => {
   const isDedicatedMediatorToken =
-    token.mediator !== getMediatorAddress(token.chainId);
+    token.mediator !==
+    getMediatorAddressWithoutOverride(bridgeDirection, token.chainId);
+
   const abi = isDedicatedMediatorToken
     ? [
         'function minPerTx() view returns (uint256)',
@@ -206,6 +254,15 @@ export const fetchTokenLimits = async (
       abi,
       getEthersProvider(toToken.chainId),
     );
+
+    if (toToken.address === ADDRESS_ZERO) {
+      return getDefaultTokenLimits(
+        token.decimals,
+        mediatorContract,
+        toMediatorContract,
+      );
+    }
+
     const [
       minPerTx,
       executionMaxPerTx,
@@ -224,6 +281,7 @@ export const fetchTokenLimits = async (
           mediatorContract.executionDailyLimit(token.address),
           toMediatorContract.totalExecutedPerDay(toToken.address, currentDay),
         ]);
+
     return {
       minPerTx,
       maxPerTx: executionMaxPerTx,
@@ -241,37 +299,23 @@ export const fetchTokenLimits = async (
 
 export const relayTokens = async (ethersProvider, token, receiver, amount) => {
   const signer = ethersProvider.getSigner();
-  const { chainId, mode, mediator, address } = token;
-  const gasPrice = getGasPrice(chainId);
+  const { mode, mediator, address } = token;
   switch (mode) {
     case 'erc677': {
       const abi = ['function transferAndCall(address, uint256, bytes)'];
       const tokenContract = new Contract(address, abi, signer);
-      return tokenContract.transferAndCall(mediator, amount, receiver, {
-        gasPrice,
-      });
+      return tokenContract.transferAndCall(mediator, amount, receiver);
     }
     case 'dedicated-erc20': {
       const abi = ['function relayTokens(address, uint256)'];
       const mediatorContract = new Contract(mediator, abi, signer);
-      return mediatorContract.relayTokens(receiver, amount, { gasPrice });
+      return mediatorContract.relayTokens(receiver, amount);
     }
     case 'erc20':
     default: {
       const abi = ['function relayTokens(address, address, uint256)'];
       const mediatorContract = new Contract(mediator, abi, signer);
-      return mediatorContract.relayTokens(token.address, receiver, amount, {
-        gasPrice,
-      });
+      return mediatorContract.relayTokens(token.address, receiver, amount);
     }
   }
-};
-
-export const transferTokens = async (
-  ethersProvider,
-  token,
-  receiver,
-  amount,
-) => {
-  return relayTokens(ethersProvider, token, receiver, amount);
 };

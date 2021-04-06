@@ -1,23 +1,46 @@
 import { gql, request } from 'graphql-request';
-import { useContext, useEffect, useState } from 'react';
 
-import { BridgeContext } from '../contexts/BridgeContext';
-import { Web3Context } from '../contexts/Web3Context';
-import { HOME_NETWORK } from './constants';
-import { getBridgeNetwork, getGraphEndpoint } from './helpers';
+import { ADDRESS_ZERO } from './constants';
 
 const pageSize = 1000;
 
-const requestsQuery = gql`
+const requestsUserQuery = gql`
   query getRequests($user: String!, $first: Int!, $skip: Int!) {
     requests: userRequests(
-      where: { user_contains: $user }
+      where: { user: $user }
       orderBy: txHash
       orderDirection: desc
       first: $first
       skip: $skip
     ) {
-      user
+      user: recipient
+      txHash
+      messageId
+      timestamp
+      amount
+      token
+      decimals
+      symbol
+      message {
+        txHash
+        msgId
+        msgData
+        signatures
+      }
+    }
+  }
+`;
+
+const requestsRecipientQuery = gql`
+  query getRequests($user: String!, $first: Int!, $skip: Int!) {
+    requests: userRequests(
+      where: { user_not: $user, recipient: $user }
+      orderBy: txHash
+      orderDirection: desc
+      first: $first
+      skip: $skip
+    ) {
+      user: recipient
       txHash
       messageId
       timestamp
@@ -46,11 +69,12 @@ const executionsQuery = gql`
     ) {
       txHash
       messageId
+      token
     }
   }
 `;
 
-export const getExecutions = async (chainId, requests) => {
+export const getExecutions = async (graphEndpoint, requests) => {
   const messageIds = requests.map(r => r.messageId);
   let executions = [];
   let page = 0;
@@ -59,7 +83,7 @@ export const getExecutions = async (chainId, requests) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
-    const data = await request(getGraphEndpoint(chainId), executionsQuery, {
+    const data = await request(graphEndpoint, executionsQuery, {
       first,
       skip: page * pageSize,
       messageIds,
@@ -74,7 +98,17 @@ export const getExecutions = async (chainId, requests) => {
   return { executions };
 };
 
-export const getRequests = async (user, chainId) => {
+export const getRequests = async (user, graphEndpoint) => {
+  const [userRequests, recipientRequests] = await Promise.all([
+    getRequestsWithQuery(user, graphEndpoint, requestsUserQuery),
+    getRequestsWithQuery(user, graphEndpoint, requestsRecipientQuery),
+  ]);
+  return {
+    requests: [...userRequests.requests, ...recipientRequests.requests],
+  };
+};
+
+export const getRequestsWithQuery = async (user, graphEndpoint, query) => {
   let requests = [];
   let page = 0;
   const first = pageSize;
@@ -82,7 +116,7 @@ export const getRequests = async (user, chainId) => {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
-    const data = await request(getGraphEndpoint(chainId), requestsQuery, {
+    const data = await request(graphEndpoint, query, {
       user,
       first,
       skip: page * pageSize,
@@ -97,7 +131,12 @@ export const getRequests = async (user, chainId) => {
   return { requests };
 };
 
-function combineRequestsWithExecutions(requests, executions, chainId) {
+export const combineRequestsWithExecutions = (
+  requests,
+  executions,
+  chainId,
+  bridgeChainId,
+) => {
   return requests.map(req => {
     const execution = executions.find(exec => exec.messageId === req.messageId);
     return {
@@ -107,89 +146,19 @@ function combineRequestsWithExecutions(requests, executions, chainId) {
       sendingTx: req.txHash,
       receivingTx: execution ? execution.txHash : null,
       amount: req.amount,
-      token: req.token,
-      decimals: req.decimals,
-      symbol: req.symbol,
+      fromToken: {
+        address: req.token,
+        decimals: req.decimals,
+        symbol: req.symbol,
+        chainId,
+      },
+      toToken: {
+        address: execution ? execution.token : ADDRESS_ZERO,
+        decimals: req.decimals,
+        symbol: req.symbol,
+        chainId: bridgeChainId,
+      },
       message: { ...req.message, messageId: req.messageId },
     };
   });
-}
-
-export function useUserHistory() {
-  const { account } = useContext(Web3Context);
-  const [transfers, setTransfers] = useState();
-  const [loading, setLoading] = useState(true);
-  const chainId = HOME_NETWORK;
-
-  useEffect(() => {
-    if (!account || !chainId) return;
-    const bridgeChainId = getBridgeNetwork(chainId);
-    async function update() {
-      const [
-        { requests: homeRequests },
-        { requests: foreignRequests },
-      ] = await Promise.all([
-        getRequests(account, chainId),
-        getRequests(account, bridgeChainId),
-      ]);
-      const [
-        { executions: homeExecutions },
-        { executions: foreignExecutions },
-      ] = await Promise.all([
-        getExecutions(chainId, foreignRequests),
-        getExecutions(bridgeChainId, homeRequests),
-      ]);
-      const homeTransfers = combineRequestsWithExecutions(
-        homeRequests,
-        foreignExecutions,
-        chainId,
-      );
-      const foreignTransfers = combineRequestsWithExecutions(
-        foreignRequests,
-        homeExecutions,
-        bridgeChainId,
-      );
-      const allTransfers = [...homeTransfers, ...foreignTransfers].sort(
-        (a, b) => b.timestamp - a.timestamp,
-      );
-      setTransfers(allTransfers);
-      setLoading(false);
-    }
-    setTransfers();
-    setLoading(true);
-    update();
-  }, [chainId, account]);
-
-  return { transfers, loading };
-}
-
-export function useClaimableTransfers() {
-  const { account, providerChainId } = useContext(Web3Context);
-  const { txHash } = useContext(BridgeContext);
-  const [transfers, setTransfers] = useState();
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!account || !providerChainId) return;
-    const chainId = HOME_NETWORK;
-    const bridgeChainId = getBridgeNetwork(chainId);
-    async function update() {
-      setLoading(true);
-      setTransfers();
-      const { requests } = await getRequests(account, chainId);
-      const { executions } = await getExecutions(bridgeChainId, requests);
-      const xDaiTransfers = combineRequestsWithExecutions(
-        requests,
-        executions,
-        chainId,
-      )
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .filter(t => !t.receivingTx);
-      setTransfers(xDaiTransfers);
-      setLoading(false);
-    }
-    update();
-  }, [account, providerChainId, txHash]);
-
-  return { transfers, loading };
-}
+};

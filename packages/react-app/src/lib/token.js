@@ -1,13 +1,13 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber, Contract, utils } from 'ethers';
 
-import { ADDRESS_ZERO, REVERSE_BRIDGE_ENABLED } from './constants';
-import { getGasPrice } from './gasPrice';
-import { getMediatorAddress, isxDaiChain, logError } from './helpers';
+import { ADDRESS_ZERO } from './constants';
 import {
-  getOverriddenMediator,
-  getOverriddenMode,
-  isOverridden,
-} from './overrides';
+  getMediatorAddress,
+  getMediatorAddressWithoutOverride,
+  logError,
+} from './helpers';
+import { networks } from './networks';
+import { getOverriddenMode, isOverridden } from './overrides';
 import { getEthersProvider } from './providers';
 
 export const fetchAllowance = async (
@@ -36,19 +36,20 @@ export const fetchAllowance = async (
   return BigNumber.from(0);
 };
 
-export const getMode = async (
-  ethersProvider,
-  isxDai,
-  isOverriddenToken,
-  mediatorAddress,
-  token,
-) => {
-  if (isOverriddenToken) {
-    return getOverriddenMode(token.address, token.chainId);
+const fetchMode = async (bridgeDirection, token) => {
+  if (isOverridden(bridgeDirection, token)) {
+    return getOverriddenMode(bridgeDirection, token);
   }
-  if (!REVERSE_BRIDGE_ENABLED) {
-    return isxDai ? 'erc677' : 'erc20';
+  const { enableReversedBridge, homeChainId } = networks[bridgeDirection];
+  if (!enableReversedBridge) {
+    return token.chainId === homeChainId ? 'erc677' : 'erc20';
   }
+
+  const ethersProvider = getEthersProvider(token.chainId);
+  const mediatorAddress = getMediatorAddressWithoutOverride(
+    bridgeDirection,
+    token.chainId,
+  );
   const abi = ['function nativeTokenAddress(address) view returns (address)'];
   const mediatorContract = new Contract(mediatorAddress, abi, ethersProvider);
   const nativeTokenAddress = await mediatorContract.nativeTokenAddress(
@@ -58,7 +59,34 @@ export const getMode = async (
   return 'erc677';
 };
 
-export const fetchTokenDetails = async token => {
+export const fetchTokenName = token => {
+  const ethersProvider = getEthersProvider(token.chainId);
+  const abi = ['function name() view returns (string)'];
+  const tokenContract = new Contract(token.address, abi, ethersProvider);
+  return tokenContract.name();
+};
+
+const fetchTokenDetailsBytes32 = async token => {
+  const ethersProvider = getEthersProvider(token.chainId);
+  const abi = [
+    'function decimals() view returns (uint8)',
+    'function symbol() view returns (bytes32)',
+    'function name() view returns (bytes32)',
+  ];
+  const tokenContract = new Contract(token.address, abi, ethersProvider);
+  const [name, symbol, decimals] = await Promise.all([
+    tokenContract.name(),
+    tokenContract.symbol(),
+    tokenContract.decimals(),
+  ]);
+  return {
+    name: utils.parseBytes32String(name),
+    symbol: utils.parseBytes32String(symbol),
+    decimals,
+  };
+};
+
+const fetchTokenDetailsString = async token => {
   const ethersProvider = getEthersProvider(token.chainId);
   const abi = [
     'function decimals() view returns (uint8)',
@@ -66,47 +94,52 @@ export const fetchTokenDetails = async token => {
     'function name() view returns (string)',
   ];
   const tokenContract = new Contract(token.address, abi, ethersProvider);
-  const isOverriddenToken = isOverridden(token.address);
 
-  const mediatorAddress = isOverriddenToken
-    ? getOverriddenMediator(token.address, token.chainId)
-    : getMediatorAddress(token.chainId);
-
-  const [name, symbol, decimals, mode] = await Promise.all([
+  const [name, symbol, decimals] = await Promise.all([
     tokenContract.name(),
     tokenContract.symbol(),
     tokenContract.decimals(),
-    getMode(
-      ethersProvider,
-      isxDaiChain(token.chainId),
-      isOverriddenToken,
-      mediatorAddress,
-      token,
-    ),
   ]);
 
-  const details = {
+  return { name, symbol, decimals };
+};
+
+const fetchTokenDetailsFromContract = async token => {
+  let details = {};
+  try {
+    details = await fetchTokenDetailsString(token);
+  } catch {
+    details = await fetchTokenDetailsBytes32(token);
+  }
+  return details;
+};
+
+export const fetchTokenDetails = async (bridgeDirection, token) => {
+  const [{ name, symbol, decimals }, mode] = await Promise.all([
+    fetchTokenDetailsFromContract(token),
+    fetchMode(bridgeDirection, token),
+  ]);
+
+  const mediatorAddress = getMediatorAddress(bridgeDirection, token);
+
+  return {
     ...token,
-    address: token.address,
-    chainId: token.chainId,
     name,
     symbol,
     decimals: Number(decimals),
     mode,
     mediator: mediatorAddress,
   };
-  return details;
 };
 
 export const approveToken = async (
   ethersProvider,
-  { chainId, address, mediator },
+  { address, mediator },
   amount,
 ) => {
   const abi = ['function approve(address, uint256)'];
-  const gasPrice = getGasPrice(chainId);
   const tokenContract = new Contract(address, abi, ethersProvider.getSigner());
-  return tokenContract.approve(mediator, amount, { gasPrice });
+  return tokenContract.approve(mediator, amount);
 };
 
 export const fetchTokenBalance = async (token, account) => {
@@ -130,5 +163,6 @@ export const fetchTokenBalanceWithProvider = async (
   } catch (error) {
     logError({ balanceError: error });
   }
+
   return BigNumber.from(0);
 };

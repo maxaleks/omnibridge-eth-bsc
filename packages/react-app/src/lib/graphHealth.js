@@ -1,12 +1,8 @@
 import { gql, request } from 'graphql-request';
+import { GRAPH_HEALTH_ENDPOINT } from 'lib/constants';
+import { logError } from 'lib/helpers';
 
-import { GRAPH_HEALTH_ENDPOINT, HOME_NETWORK } from './constants';
-import { getBridgeNetwork, getSubgraphName, logError } from './helpers';
-
-const FOREIGN_NETWORK = getBridgeNetwork(HOME_NETWORK);
-
-const HOME_SUBGRAPH = getSubgraphName(HOME_NETWORK);
-const FOREIGN_SUBGRAPH = getSubgraphName(FOREIGN_NETWORK);
+import { networks } from './networks';
 
 const healthQuery = gql`
   query getHealthStatus($subgraphHome: String!, $subgraphForeign: String!) {
@@ -60,6 +56,7 @@ const extractStatus = ({ fatalError, synced, chains }) => ({
   isFailed: !!fatalError,
   isSynced: synced,
   latestBlockNumber: Number(chains[0].latestBlock.number),
+  chainHeadBlockNumber: Number(chains[0].chainHeadBlock.number),
 });
 
 const failedStatus = {
@@ -67,13 +64,15 @@ const failedStatus = {
   isFailed: true,
   isSynced: false,
   latestBlockNumber: 0,
+  chainHeadBlockNumber: 0,
 };
 
-export const getHealthStatus = async () => {
+export const getHealthStatus = async bridgeDirection => {
+  const { homeGraphName, foreignGraphName } = networks[bridgeDirection];
   try {
     const data = await request(GRAPH_HEALTH_ENDPOINT, healthQuery, {
-      subgraphHome: HOME_SUBGRAPH,
-      subgraphForeign: FOREIGN_SUBGRAPH,
+      subgraphHome: homeGraphName,
+      subgraphForeign: foreignGraphName,
     });
     return {
       homeHealth: extractStatus(data.homeHealth),

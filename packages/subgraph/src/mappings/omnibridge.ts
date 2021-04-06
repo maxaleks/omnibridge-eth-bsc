@@ -6,10 +6,14 @@ import {
 } from '../types/Omnibridge/Omnibridge';
 import { Execution, UserRequest, Token } from '../types/schema';
 
-import { fetchTokenInfo, overrides } from './helpers';
+import { fetchTokenInfo, getDirection } from './helpers';
+
+import { getOverrides } from './overrides';
 
 export function handleBridgeTransfer(event: TokensBridged): void {
-  log.debug('Parsing TokensBridged', []);
+  log.debug('Parsing TokensBridged for txHash {}', [
+    event.transaction.hash.toHexString(),
+  ]);
   let txHash = event.transaction.hash;
   let execution = Execution.load(txHash.toHexString());
   if (execution == null) {
@@ -26,7 +30,9 @@ export function handleBridgeTransfer(event: TokensBridged): void {
 }
 
 export function handleInitiateTransfer(event: TokensBridgingInitiated): void {
-  log.debug('Parsing TokensBridged', []);
+  log.debug('Parsing TokensBridgingInitiated for txHash {}', [
+    event.transaction.hash.toHexString(),
+  ]);
   let txHash = event.transaction.hash;
   let request = UserRequest.load(txHash.toHexString());
   if (request == null) {
@@ -48,6 +54,8 @@ export function handleInitiateTransfer(event: TokensBridgingInitiated): void {
 export function handleNewToken(event: NewTokenRegistered): void {
   log.debug('Parsing NewTokenRegistered', []);
 
+  let overrides = getOverrides();
+
   if (
     overrides.isSet(event.params.foreignToken) ||
     overrides.isSet(event.params.homeToken)
@@ -64,9 +72,15 @@ export function handleNewToken(event: NewTokenRegistered): void {
   token.decimals = tokenObject.decimals;
 
   let network = dataSource.network();
-  if (network == 'xdai') {
+  let direction = getDirection();
+  if (network == 'xdai' && direction == 'mainnet-xdai') {
     token.homeChainId = 100;
     token.foreignChainId = 1;
+    token.homeName = tokenObject.name;
+    token.foreignName = tokenObject.name.slice(0, -8);
+  } else if (network == 'xdai' && direction == 'bsc-xdai') {
+    token.homeChainId = 100;
+    token.foreignChainId = 56;
     token.homeName = tokenObject.name;
     token.foreignName = tokenObject.name.slice(0, -8);
   } else if (network == 'poa-sokol') {
@@ -84,6 +98,11 @@ export function handleNewToken(event: NewTokenRegistered): void {
     token.foreignChainId = 100;
     token.homeName = tokenObject.name;
     token.foreignName = tokenObject.name.slice(0, -11);
+  } else if (network == 'bsc') {
+    token.homeChainId = 56;
+    token.foreignChainId = 100;
+    token.homeName = tokenObject.name;
+    token.foreignName = tokenObject.name.slice(0, -7);
   }
 
   token.save();

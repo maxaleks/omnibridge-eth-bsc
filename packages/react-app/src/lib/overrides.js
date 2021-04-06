@@ -1,3 +1,9 @@
+import {
+  BSC_XDAI_BRIDGE,
+  ETH_XDAI_BRIDGE,
+  KOVAN_SOKOL_BRIDGE,
+} from 'lib/networks';
+
 const OWLTokenOverride = {
   100: {
     mediator: '0xbeD794745e2a0543eE609795ade87A55Bbe935Ba',
@@ -103,7 +109,22 @@ const HNYTokenOverride = {
   },
 };
 
-const overrides = {
+const DATATokenOverride = {
+  100: {
+    mediator: '0x7d55f9981d4E10A193314E001b96f72FCc901e40',
+    from: '0xE4a2620edE1058D61BEe5F45F6414314fdf10548',
+    to: '0x0cf0ee63788a0849fe5297f3407f701e122cc023',
+    mode: 'dedicated-erc20',
+  },
+  1: {
+    mediator: '0x2eeeDdeECe91c9F4c5bA4C8E1d784A0234C6d015',
+    from: '0x0cf0ee63788a0849fe5297f3407f701e122cc023',
+    to: '0xE4a2620edE1058D61BEe5F45F6414314fdf10548',
+    mode: 'dedicated-erc20',
+  },
+};
+
+const ETH_XDAI_OVERRIDES = {
   ['0x0905Ab807F8FD040255F0cF8fa14756c1D824931'.toLowerCase()]: OWLTokenOverride,
   ['0x1a5f9352af8af974bfc03399e3767df6370d82e4'.toLowerCase()]: OWLTokenOverride,
   ['0xE2e73A1c69ecF83F464EFCE6A5be353a37cA09b2'.toLowerCase()]: LINKTokenOverride,
@@ -114,25 +135,54 @@ const overrides = {
   ['0x408ec1bb883da0ea0fb3c955ea6befcd05aa7c3a'.toLowerCase()]: STAKETokenOverrideSokol,
   ['0xe1cA72ff3434B131765c62Cbcbc26060F7Aba03D'.toLowerCase()]: MOONTokenOverride,
   ['0x1e16aa4Df73d29C029d94CeDa3e3114EC191E25A'.toLowerCase()]: MOONTokenOverride,
-  ['0xd846B096949E15b42ABCaEB82137c5a3495B1Ed4'.toLowerCase()]: DEMO2712TokenOverrideSokol,
-  ['0xa4764045851F17AA60B6c8E8b62072Bea9538521'.toLowerCase()]: DEMO2712TokenOverrideSokol,
   ['0xc3589f56b6869824804a5ea29f2c9886af1b0fce'.toLowerCase()]: HNYTokenOverride,
   ['0x71850b7e9ee3f13ab46d67167341e4bdc905eef9'.toLowerCase()]: HNYTokenOverride,
+  ['0x0cf0ee63788a0849fe5297f3407f701e122cc023'.toLowerCase()]: DATATokenOverride,
+  ['0xE4a2620edE1058D61BEe5F45F6414314fdf10548'.toLowerCase()]: DATATokenOverride,
 };
 
-export const isOverridden = tokenAddress =>
-  tokenAddress
-    ? Object.prototype.hasOwnProperty.call(
-        overrides,
-        tokenAddress.toLowerCase(),
-      )
-    : false;
+const KOVAN_SOKOL_OVERRIDES = {
+  ['0xd846B096949E15b42ABCaEB82137c5a3495B1Ed4'.toLowerCase()]: DEMO2712TokenOverrideSokol,
+  ['0xa4764045851F17AA60B6c8E8b62072Bea9538521'.toLowerCase()]: DEMO2712TokenOverrideSokol,
+};
 
-export const getOverriddenToToken = (tokenAddress, chainId) =>
-  overrides[tokenAddress.toLowerCase()][chainId].to;
+const BSC_XDAI_OVERRIDES = {};
 
-export const getOverriddenMode = (tokenAddress, chainId) =>
-  overrides[tokenAddress.toLowerCase()][chainId].mode;
+const OVERRIDES = {
+  [ETH_XDAI_BRIDGE]: ETH_XDAI_OVERRIDES,
+  [KOVAN_SOKOL_BRIDGE]: KOVAN_SOKOL_OVERRIDES,
+  [BSC_XDAI_BRIDGE]: BSC_XDAI_OVERRIDES,
+};
 
-export const getOverriddenMediator = (tokenAddress, chainId) =>
-  overrides[tokenAddress.toLowerCase()][chainId].mediator.toLowerCase();
+export const isOverridden = (bridgeDirection, token) => {
+  if (!token || !bridgeDirection) return false;
+  const { address, chainId } = token;
+  if (!address || !chainId) return false;
+  const overrides = OVERRIDES[bridgeDirection];
+  const override = overrides[address.toLowerCase()];
+  return override !== undefined && override[chainId] !== undefined;
+};
+
+export const getOverriddenToToken = (bridgeDirection, token) => {
+  if (!token || !bridgeDirection) return null;
+  const { address, chainId } = token;
+  if (!address || !chainId) return null;
+  const overrides = OVERRIDES[bridgeDirection];
+  return overrides[address.toLowerCase()][chainId].to;
+};
+
+export const getOverriddenMode = (bridgeDirection, token) => {
+  if (!token || !bridgeDirection) return null;
+  const { address, chainId } = token;
+  if (!address || !chainId) return null;
+  const overrides = OVERRIDES[bridgeDirection];
+  return overrides[address.toLowerCase()][chainId].mode;
+};
+
+export const getOverriddenMediator = (bridgeDirection, token) => {
+  if (!token || !bridgeDirection) return null;
+  const { address, chainId } = token;
+  if (!address || !chainId) return null;
+  const overrides = OVERRIDES[bridgeDirection];
+  return overrides[address.toLowerCase()][chainId].mediator.toLowerCase();
+};
