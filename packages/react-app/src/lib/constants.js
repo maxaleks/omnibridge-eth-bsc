@@ -109,10 +109,10 @@ export const defaultTokens = {
     name: 'STAKE',
   },
   56: {
-    address: '0x24e5CF4a0577563d4e7761D14D53C8D0b504E337',
+    address: '0xe55e614862694214f0339adb551393cb56149323',
     chainId: 56,
     symbol: 'STAKE',
-    name: 'STAKE on xDai on BSC',
+    name: 'STAKE on BSC',
   },
   77: {
     address: '0x408ec1bb883da0ea0fb3c955ea6befcd05aa7c3a',

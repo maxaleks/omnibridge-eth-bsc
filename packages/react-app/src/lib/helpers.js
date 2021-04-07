@@ -10,6 +10,7 @@ import {
 } from 'lib/constants';
 import {
   BSC_XDAI_BRIDGE,
+  ETH_BSC_BRIDGE,
   ETH_XDAI_BRIDGE,
   KOVAN_SOKOL_BRIDGE,
   networks,
@@ -149,6 +150,11 @@ export const getRPCKeys = bridgeDirection => {
       return {
         homeRPCKey: XDAI_RPC_URL,
         foreignRPCKey: BSC_RPC_URL,
+      };
+    case ETH_BSC_BRIDGE:
+      return {
+        homeRPCKey: BSC_RPC_URL,
+        foreignRPCKey: MAINNET_RPC_URL,
       };
     case KOVAN_SOKOL_BRIDGE:
     default:

@@ -2,6 +2,7 @@
   "projects": {
     "xdai": "xdai-omnibridge",
     "sokol": "sokol-omnibridge",
-    "bsc-xdai": "bsc-to-xdai-omnibridge"
+    "bsc-xdai": "bsc-to-xdai-omnibridge",
+    "eth-bsc": "mainnet-to-bsc-omnibridge"
   }
 }

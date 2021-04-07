@@ -1,5 +1,6 @@
 import {
   BSC_XDAI_BRIDGE,
+  ETH_BSC_BRIDGE,
   ETH_XDAI_BRIDGE,
   KOVAN_SOKOL_BRIDGE,
 } from 'lib/networks';
@@ -147,11 +148,13 @@ const KOVAN_SOKOL_OVERRIDES = {
 };
 
 const BSC_XDAI_OVERRIDES = {};
+const ETH_BSC_OVERRIDES = {};
 
 const OVERRIDES = {
   [ETH_XDAI_BRIDGE]: ETH_XDAI_OVERRIDES,
   [KOVAN_SOKOL_BRIDGE]: KOVAN_SOKOL_OVERRIDES,
   [BSC_XDAI_BRIDGE]: BSC_XDAI_OVERRIDES,
+  [ETH_BSC_BRIDGE]: ETH_BSC_OVERRIDES,
 };
 
 export const isOverridden = (bridgeDirection, token) => {

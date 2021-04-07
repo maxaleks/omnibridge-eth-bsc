@@ -1,6 +1,7 @@
 export const ETH_XDAI_BRIDGE = 'eth-xdai';
 export const BSC_XDAI_BRIDGE = 'bsc-xdai';
 export const KOVAN_SOKOL_BRIDGE = 'kovan-sokol';
+export const ETH_BSC_BRIDGE = 'eth-bsc';
 
 const ETH_XDAI_BRIDGE_CONFIG = {
   label: 'eth⥊xdai',
@@ -44,6 +45,20 @@ const KOVAN_SOKOL_BRIDGE_CONFIG = {
   ambLiveMonitorPrefix: 'https://alm-test-amb.herokuapp.com',
 };
 
+const ETH_BSC_BRIDGE_CONFIG = {
+  label: 'eth⥊bsc',
+  homeChainId: 56,
+  foreignChainId: 1,
+  enableReversedBridge: false,
+  foreignMediatorAddress: '0x69c707d975e8d883920003CC357E556a4732CD03'.toLowerCase(),
+  homeMediatorAddress: '0xD83893F31AA1B6B9D97C9c70D3492fe38D24d218'.toLowerCase(),
+  foreignAmbAddress: '0x07955be2967B655Cf52751fCE7ccC8c61EA594e2'.toLowerCase(),
+  homeAmbAddress: '0x6943A218d58135793F1FE619414eD476C37ad65a'.toLowerCase(),
+  foreignGraphName: 'maxaleks/mainnet-to-bsc-omnibridge',
+  homeGraphName: 'maxaleks/bsc-to-mainnet-omnibridge',
+  ambLiveMonitorPrefix: 'http://alm-bsc.herokuapp.com',
+};
+
 const ENABLE_SOKOL = process.env.REACT_APP_ENABLE_SOKOL_BRIDGE === 'true';
 
 export const networks = ENABLE_SOKOL
@@ -53,6 +68,7 @@ export const networks = ENABLE_SOKOL
       [KOVAN_SOKOL_BRIDGE]: KOVAN_SOKOL_BRIDGE_CONFIG,
     }
   : {
-      [ETH_XDAI_BRIDGE]: ETH_XDAI_BRIDGE_CONFIG,
-      [BSC_XDAI_BRIDGE]: BSC_XDAI_BRIDGE_CONFIG,
+      // [ETH_XDAI_BRIDGE]: ETH_XDAI_BRIDGE_CONFIG,
+      // [BSC_XDAI_BRIDGE]: BSC_XDAI_BRIDGE_CONFIG,
+      [ETH_BSC_BRIDGE]: ETH_BSC_BRIDGE_CONFIG,
     };
