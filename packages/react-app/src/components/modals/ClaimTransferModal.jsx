@@ -25,7 +25,12 @@ import {
   getMessageStatus,
 } from 'lib/amb';
 import { POLLING_INTERVAL } from 'lib/constants';
-import { getNetworkName, logError } from 'lib/helpers';
+import {
+  getHelperContract,
+  getNativeCurrency,
+  getNetworkName,
+  logError,
+} from 'lib/helpers';
 import React, { useContext, useEffect, useState } from 'react';
 
 export const ClaimTransferModal = () => {
@@ -34,6 +39,7 @@ export const ClaimTransferModal = () => {
     foreignChainId,
     foreignAmbAddress,
     getGraphEndpoint,
+    enableForeignCurrencyBridge,
   } = useBridgeDirection();
   const { account, ethersProvider, providerChainId } = useWeb3Context();
   const { txHash, setTxHash } = useContext(BridgeContext);
@@ -77,6 +83,7 @@ export const ClaimTransferModal = () => {
       });
     }
   };
+
   const onClick = async () => {
     if (executed) {
       showError('Message already executed');
@@ -175,6 +182,14 @@ export const ClaimTransferModal = () => {
         txHash={txHash}
       />
     );
+
+  const foreignCurrencyHelperContract = getHelperContract(foreignChainId);
+  const { symbol: tokenSymbol } =
+    enableForeignCurrencyBridge &&
+    message.recipient === foreignCurrencyHelperContract
+      ? getNativeCurrency(foreignChainId)
+      : message;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay background="modalBG">
@@ -200,13 +215,13 @@ export const ClaimTransferModal = () => {
               <Flex
                 mt={4}
                 w="100%"
-                borderRadius="4px"
+                borderRadius="0.25rem"
                 border="1px solid #DAE3F0"
                 mb={executed ? 6 : 0}
               >
                 <Flex
                   bg="rgba(83, 164, 255, 0.1)"
-                  borderLeftRadius="4px"
+                  borderLeftRadius="0.25rem"
                   border="1px solid #53A4FF"
                   justify="center"
                   align="center"
@@ -216,23 +231,25 @@ export const ClaimTransferModal = () => {
                 >
                   <Image src={InfoImage} />
                 </Flex>
-                <Flex align="center" fontSize="12px" p={4}>
+                <Flex align="center" fontSize="0.75rem" p={4}>
                   <Text>
                     {`The claim process may take a variable period of time on ${getNetworkName(
                       foreignChainId,
                     )}${' '}
-                    depending on network congestion. Your ${
-                      message.symbol
-                    } balance will increase to reflect${' '}
+                    depending on network congestion. Your ${tokenSymbol} balance will increase to reflect${' '}
                     the completed transfer after the claim is processed`}
                   </Text>
                 </Flex>
               </Flex>
               {executed && (
-                <Flex w="100%" borderRadius="4px" border="1px solid #DAE3F0">
+                <Flex
+                  w="100%"
+                  borderRadius="0.25rem"
+                  border="1px solid #DAE3F0"
+                >
                   <Flex
                     bg="rgba(255, 102, 92, 0.1)"
-                    borderLeftRadius="4px"
+                    borderLeftRadius="0.25rem"
                     border="1px solid #FF665C"
                     justify="center"
                     align="center"
@@ -242,7 +259,7 @@ export const ClaimTransferModal = () => {
                   >
                     <Image src={ErrorImage} />
                   </Flex>
-                  <Flex align="center" fontSize="12px" p={4}>
+                  <Flex align="center" fontSize="0.75rem" p={4}>
                     <Text>The transfer request was already executed</Text>
                   </Flex>
                 </Flex>

@@ -20,8 +20,14 @@ import {
   getMessageStatus,
 } from 'lib/amb';
 import { POLLING_INTERVAL } from 'lib/constants';
-import { getExplorerUrl, getNetworkName, logError } from 'lib/helpers';
-import React, { useEffect, useState } from 'react';
+import {
+  getExplorerUrl,
+  getHelperContract,
+  getNativeCurrency,
+  getNetworkName,
+  logError,
+} from 'lib/helpers';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 const { formatUnits } = utils;
 
@@ -57,6 +63,7 @@ const getNetworkTag = chainId => networkTags[chainId];
 
 export const HistoryItem = ({
   data: {
+    user,
     chainId,
     timestamp,
     sendingTx,
@@ -73,6 +80,7 @@ export const HistoryItem = ({
     getBridgeChainId,
     getMonitorUrl,
     getGraphEndpoint,
+    enableForeignCurrencyBridge,
   } = useBridgeDirection();
   const { providerChainId, ethersProvider } = useWeb3Context();
   const bridgeChainId = getBridgeChainId(chainId);
@@ -90,20 +98,26 @@ export const HistoryItem = ({
   });
 
   const toast = useToast();
-  const showError = msg => {
-    if (msg) {
-      toast({
-        title: 'Error',
-        description: msg,
-        status: 'error',
-        isClosable: 'true',
-      });
-    }
-  };
-  const claimable = message && message.msgData && message.signatures;
+  const showError = useCallback(
+    msg => {
+      if (msg) {
+        toast({
+          title: 'Error',
+          description: msg,
+          status: 'error',
+          isClosable: 'true',
+        });
+      }
+    },
+    [toast],
+  );
+  const claimable = useMemo(
+    () => message && message.msgData && message.signatures,
+    [message],
+  );
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState();
-  const claimTokens = async () => {
+  const claimTokens = useCallback(async () => {
     if (loading) return;
     if (providerChainId === homeChainId) {
       showError(`Please switch wallet to ${getNetworkName(foreignChainId)}`);
@@ -119,7 +133,6 @@ export const HistoryItem = ({
         );
         setTxHash(tx.hash);
       } catch (executeError) {
-        setLoading(false);
         logError({ executeError, chainId: providerChainId, message });
         if (executeError && executeError.message) {
           showError(executeError.message);
@@ -128,9 +141,21 @@ export const HistoryItem = ({
             'Impossible to perform the operation. Reload the application and try again.',
           );
         }
+      } finally {
+        setLoading(false);
       }
     }
-  };
+  }, [
+    loading,
+    providerChainId,
+    homeChainId,
+    foreignChainId,
+    ethersProvider,
+    foreignAmbAddress,
+    claimable,
+    message,
+    showError,
+  ]);
 
   useEffect(() => {
     const subscriptions = [];
@@ -186,6 +211,12 @@ export const HistoryItem = ({
     sendingTx,
     getGraphEndpoint,
   ]);
+
+  const homeCurrencyHelperContract = getHelperContract(foreignChainId);
+  const { symbol: tokenSymbol } =
+    enableForeignCurrencyBridge && user === homeCurrencyHelperContract
+      ? getNativeCurrency(foreignChainId)
+      : toToken;
 
   return (
     <Flex
@@ -272,9 +303,10 @@ export const HistoryItem = ({
             Amount
           </Text>
           <Text my="auto" textAlign="center">
-            {`${formatUnits(BigNumber.from(amount), toToken.decimals)} ${
-              toToken.symbol
-            }`}
+            {`${formatUnits(
+              BigNumber.from(amount),
+              toToken.decimals,
+            )} ${tokenSymbol}`}
           </Text>
           <AddToMetamask token={toToken} ml="0.25rem" />
         </Flex>
