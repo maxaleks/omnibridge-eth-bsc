@@ -1,5 +1,4 @@
 import { Checkbox, Flex, Grid, Text } from '@chakra-ui/react';
-import { GraphHealthAlert } from 'components/history/GraphHealthAlert';
 import { HistoryItem } from 'components/history/HistoryItem';
 import { HistoryPagination } from 'components/history/HistoryPagination';
 import { ManualClaim } from 'components/history/ManualClaim';
