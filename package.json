@@ -35,7 +35,8 @@
     "react-app:lint": "yarn workspace @omnibridge/react-app lint",
     "lint": "eslint --ignore-path .gitignore \"./packages/**/*.{ts,tsx,js,jsx}\"",
     "format": "prettier --ignore-path .gitignore --write \"{*,**/*}.{ts,tsx,js,jsx,json,md}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "deploy-eth-bsc": "firebase deploy --only hosting --project eth-bsc"
   },
   "workspaces": {
     "nohoist": [
