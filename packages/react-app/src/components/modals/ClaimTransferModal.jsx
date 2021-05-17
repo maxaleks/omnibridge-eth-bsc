@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertIcon,
   Button,
   Flex,
   Image,
@@ -11,11 +13,11 @@ import {
   ModalOverlay,
   Text,
   useToast,
+  VStack,
 } from '@chakra-ui/react';
 import ClaimTokenImage from 'assets/claim.svg';
-import ErrorImage from 'assets/error.svg';
-import InfoImage from 'assets/info.svg';
 import { LoadingModal } from 'components/modals/LoadingModal';
+import { AuspiciousGasWarning } from 'components/warnings/AuspiciousGasWarning';
 import { BridgeContext } from 'contexts/BridgeContext';
 import { useWeb3Context } from 'contexts/Web3Context';
 import { useBridgeDirection } from 'hooks/useBridgeDirection';
@@ -25,6 +27,11 @@ import {
   getMessageStatus,
 } from 'lib/amb';
 import { POLLING_INTERVAL } from 'lib/constants';
+import {
+  getGasPrice,
+  getLowestHistoricalEthGasPrice,
+  getMedianHistoricalEthGasPrice,
+} from 'lib/gasPrice';
 import {
   getHelperContract,
   getNativeCurrency,
@@ -86,17 +93,39 @@ export const ClaimTransferModal = () => {
 
   const onClick = async () => {
     if (executed) {
-      showError('Message already executed');
+      showError(
+        `The transfer was already executed. Check your balance of this token in ${getNetworkName(
+          foreignChainId,
+        )}`,
+      );
     } else if (!message || !message.msgData || !message.signatures) {
       showError('Still Collecting Signatures...');
     } else if (claimable) {
       try {
         setClaiming(true);
-        await executeSignatures(ethersProvider, foreignAmbAddress, message);
+        const { error, alreadyClaimed, data } = await executeSignatures(
+          ethersProvider,
+          foreignAmbAddress,
+          {
+            ...message,
+            messageId: message.msgId,
+          },
+        );
         setLoadingText('Waiting for Execution');
+        if (error) {
+          throw error;
+        }
+
+        if (!data && alreadyClaimed) {
+          showError(
+            `The transfer was already executed. Check your balance of this token in ${getNetworkName(
+              foreignChainId,
+            )}`,
+          );
+          setExecuted(true);
+          return;
+        }
       } catch (executeError) {
-        setClaiming(false);
-        setLoadingText('');
         logError({ executeError, chainId: foreignChainId, message });
         if (executeError && executeError.message) {
           showError(executeError.message);
@@ -105,6 +134,9 @@ export const ClaimTransferModal = () => {
             'Impossible to perform the operation. Reload the application and try again.',
           );
         }
+      } finally {
+        setClaiming(false);
+        setLoadingText('');
       }
     }
   };
@@ -189,6 +221,9 @@ export const ClaimTransferModal = () => {
     message.recipient === foreignCurrencyHelperContract
       ? getNativeCurrency(foreignChainId)
       : message;
+  const currentGasPrice = getGasPrice();
+  const medianGasPrice = getMedianHistoricalEthGasPrice();
+  const lowestGasPrice = getLowestHistoricalEthGasPrice();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -211,60 +246,39 @@ export const ClaimTransferModal = () => {
             p={2}
           />
           <ModalBody px={6} py={0}>
-            <Flex align="center" direction="column">
-              <Flex
-                mt={4}
-                w="100%"
-                borderRadius="0.25rem"
-                border="1px solid #DAE3F0"
-                mb={executed ? 6 : 0}
-              >
-                <Flex
-                  bg="rgba(83, 164, 255, 0.1)"
-                  borderLeftRadius="0.25rem"
-                  border="1px solid #53A4FF"
-                  justify="center"
-                  align="center"
-                  minW="4rem"
-                  maxW="4rem"
-                  flex={1}
-                >
-                  <Image src={InfoImage} />
-                </Flex>
-                <Flex align="center" fontSize="0.75rem" p={4}>
-                  <Text>
+            <VStack align="center" direction="column" spacing="4">
+              {foreignChainId === 1 && medianGasPrice.gt(currentGasPrice) && (
+                <AuspiciousGasWarning
+                  currentPrice={currentGasPrice}
+                  medianPrice={medianGasPrice}
+                  lowestPrice={lowestGasPrice}
+                  noShadow
+                  noMargin
+                />
+              )}
+              <Flex align="center" direction="column" w="100%">
+                <Alert status="info" borderRadius={5}>
+                  <AlertIcon minWidth="20px" />
+                  <Text fontSize="small">
                     {`The claim process may take a variable period of time on ${getNetworkName(
                       foreignChainId,
                     )}${' '}
                     depending on network congestion. Your ${tokenSymbol} balance will increase to reflect${' '}
                     the completed transfer after the claim is processed`}
                   </Text>
-                </Flex>
+                </Alert>
               </Flex>
               {executed && (
-                <Flex
-                  w="100%"
-                  borderRadius="0.25rem"
-                  border="1px solid #DAE3F0"
-                >
-                  <Flex
-                    bg="rgba(255, 102, 92, 0.1)"
-                    borderLeftRadius="0.25rem"
-                    border="1px solid #FF665C"
-                    justify="center"
-                    align="center"
-                    minW="4rem"
-                    maxW="4rem"
-                    flex={1}
-                  >
-                    <Image src={ErrorImage} />
-                  </Flex>
-                  <Flex align="center" fontSize="0.75rem" p={4}>
-                    <Text>The transfer request was already executed</Text>
-                  </Flex>
+                <Flex align="center" direction="column" w="100%">
+                  <Alert status="error" borderRadius={5}>
+                    <AlertIcon minWidth="20px" />
+                    <Text fontSize="small">
+                      The transfer request was already executed
+                    </Text>
+                  </Alert>
                 </Flex>
               )}
-            </Flex>
+            </VStack>
           </ModalBody>
           <ModalFooter p={6}>
             <Flex
