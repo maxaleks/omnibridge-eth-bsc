@@ -45,7 +45,7 @@ const getMessage = async (homeProvider, homeAmbAddress, txHash) => {
     'function signature(bytes32 _hash, uint256 _index) public view returns (bytes)',
   ];
   const homeAMB = new Contract(homeAmbAddress, abi, homeProvider);
-  let events = await homeAMB.queryFilter('CollectedSignatures', 12123723);
+  let events = await homeAMB.queryFilter('CollectedSignatures', 2756521);
   events = events.filter(x => x.args.messageHash === messageHash);
   if (events.length === 0) {
     throw Error(
