@@ -43,19 +43,29 @@ const getMessage = async (homeProvider, homeAmbAddress, txHash) => {
   const abi = [
     'event CollectedSignatures(address authorityResponsibleForRelay, bytes32 messageHash, uint256 NumberOfCollectedSignatures)',
     'function signature(bytes32 _hash, uint256 _index) public view returns (bytes)',
+    'function isAlreadyProcessed(uint256 _number) public pure returns (bool)',
+    'function numMessagesSigned(bytes32 _message) public view returns (uint256)',
+    'function requiredSignatures() public view returns (uint256)',
   ];
   const homeAMB = new Contract(homeAmbAddress, abi, homeProvider);
-  let events = await homeAMB.queryFilter('CollectedSignatures', 2756521);
-  events = events.filter(x => x.args.messageHash === messageHash);
-  if (events.length === 0) {
+
+  const [
+    requiredNumberOfSignatures,
+    numberOfCollectedSignatures,
+  ] = await Promise.all([
+    homeAMB.requiredSignatures(),
+    homeAMB.numMessagesSigned(messageHash),
+  ]);
+  const isEnoughCollected = await homeAMB.isAlreadyProcessed(
+    numberOfCollectedSignatures,
+  );
+  if (!isEnoughCollected) {
     throw Error(
       'Transaction to the bridge is found but oracles’ confirmations are not collected yet. Wait for a minute and try again.',
     );
   }
-  const event = events[0];
-  const n = parseInt(event.args.NumberOfCollectedSignatures, 10);
   const signatures = await Promise.all(
-    Array(n)
+    Array(requiredNumberOfSignatures.toNumber())
       .fill(null)
       .map((_item, index) => homeAMB.signature(messageHash, index)),
   );
